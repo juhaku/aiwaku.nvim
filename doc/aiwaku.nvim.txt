@@ -1,0 +1,270 @@
+*aiwaku.nvim.txt*   Integrate any CLI AI tool into Neovim as a persistent sidebar
+
+==============================================================================
+CONTENTS                                                       *aiwaku-contents*
+
+  1. Introduction ............................................. |aiwaku-intro|
+  2. Requirements ..................................... |aiwaku-requirements|
+  3. Installation ..................................... |aiwaku-installation|
+  4. Setup .................................................. |aiwaku-setup|
+  5. Configuration .................................... |aiwaku-configuration|
+  6. Keymaps .............................................. |aiwaku-keymaps|
+  7. API .................................................... |aiwaku-api|
+  8. LSP Code Actions ................................. |aiwaku-code-actions|
+
+==============================================================================
+1. INTRODUCTION                                                   *aiwaku-intro*
+
+aiwaku.nvim brings any CLI AI tool into Neovim as a persistent sidebar panel.
+
+It does not implement AI features itself. Instead it acts as a bridge: you
+configure the CLI command you already use (`copilot`, `claude`, `opencode`,
+`aider`, or any other), and aiwaku runs it in a tmux session attached to a
+Neovim terminal split.
+
+Because sessions are backed by tmux, your conversation context persists across
+panel toggles, window changes, and Neovim restarts. You can maintain multiple
+independent sessions and switch between them with a picker.
+
+==============================================================================
+2. REQUIREMENTS                                             *aiwaku-requirements*
+
+System dependencies:~
+
+  tmux >= 3.0      Session persistence and management
+                   https://github.com/tmux/tmux
+
+  Neovim >= 0.10   Required for vim.system and modern nvim API
+
+Neovim plugin dependencies:~
+
+  nvim-lua/plenary.nvim    Async job execution
+                           https://github.com/nvim-lua/plenary.nvim
+
+==============================================================================
+3. INSTALLATION                                             *aiwaku-installation*
+
+Using lazy.nvim: >lua
+
+  {
+    "juhaku/aiwaku.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = { cmd = { "opencode" } },
+  }
+<
+
+==============================================================================
+4. SETUP                                                          *aiwaku-setup*
+
+Call `require("aiwaku").setup(opts)` once during Neovim startup. The only
+required option is `cmd`.
+
+Minimal example: >lua
+
+  require("aiwaku").setup({
+    cmd = { "opencode" },
+  })
+<
+
+`cmd` accepts a list (recommended) or a plain string: >lua
+
+  cmd = { "/usr/local/bin/claude", "--model", "claude-3-5-sonnet" }
+  cmd = "aider --model gpt-4o"
+<
+
+==============================================================================
+5. CONFIGURATION                                           *aiwaku-configuration*
+
+                                                            *aiwaku-config-cmd*
+cmd ~
+  Type: `string | string[]`
+  Default: `{ "copilot" }`
+
+  The CLI command to run inside the tmux session. Use a list to avoid shell
+  quoting issues. The first element is used to derive the terminal buffer name.
+
+                                                          *aiwaku-config-width*
+width ~
+  Type: `integer`
+  Default: `80`
+
+  Width of the sidebar panel in columns.
+
+                                                       *aiwaku-config-position*
+position ~
+  Type: `"right" | "left"`
+  Default: `"right"`
+
+  Which side of the screen to open the sidebar on.
+
+                                                        *aiwaku-config-keymaps*
+keymaps ~
+  Type: `table`
+
+  Map of mode lists to keymap definitions. Each entry maps a left-hand side
+  string to a table with `command` (string or function) and `description`.
+
+  Default: >lua
+
+    keymaps = {
+      [{ "n" }] = {
+        ["<leader>ai"] = {
+          command = function() require("aiwaku").toggle() end,
+          description = "Toggle Aiwaku",
+        },
+        ["<leader>an"] = {
+          command = function() require("aiwaku").new_session() end,
+          description = "Aiwaku: new session",
+        },
+        ["<leader>as"] = {
+          command = function() require("aiwaku").select_session() end,
+          description = "Aiwaku: select session",
+        },
+        ["<leader>ar"] = {
+          command = function() require("aiwaku").rename_session() end,
+          description = "Aiwaku: rename session",
+        },
+      },
+      [{ "v" }] = {
+        ["<leader>ai"] = {
+          command = "<Esc><Cmd>lua require('aiwaku').send_selection()<CR>",
+          description = "Aiwaku: send selection",
+        },
+      },
+    },
+<
+
+                                               *aiwaku-config-terminal_keymaps*
+terminal_keymaps ~
+  Type: `table`
+
+  Keymaps active only inside the sidebar terminal buffer. Keys map to a table
+  with `command` (string) and `description`.
+
+  Default: >lua
+
+    terminal_keymaps = {
+      ["<C-w>h"] = {
+        command = "<C-\\><C-n><C-w>h",
+        description = "Focus left",
+      },
+      ["<C-w>l"] = {
+        command = "<C-\\><C-n><C-w>l",
+        description = "Focus right",
+      },
+      ["<C-a>r"] = {
+        command = "<C-\\><C-n><Cmd>lua require('aiwaku').rename_session()<CR>",
+        description = "Aiwaku: rename session",
+      },
+    },
+<
+
+==============================================================================
+6. KEYMAPS                                                       *aiwaku-keymaps*
+
+Default normal mode keymaps:~
+
+  `<leader>ai`    Toggle the AI sidebar (open/close)
+  `<leader>an`    Start a new session
+  `<leader>as`    Select from existing sessions (picker)
+  `<leader>ar`    Rename the current session
+
+Default visual mode keymaps:~
+
+  `<leader>ai`    Send the selected text to the AI
+
+Default terminal mode keymaps (inside the sidebar):~
+
+  `<C-w>h`        Move focus to the left window
+  `<C-w>l`        Move focus to the right window
+  `<C-a>r`        Rename the current session
+
+All keymaps can be overridden or disabled by setting `keymaps` and
+`terminal_keymaps` in your |aiwaku-setup| call. Pass an empty table to disable
+all default keymaps.
+
+==============================================================================
+7. API                                                             *aiwaku-api*
+
+All functions are on the module returned by `require("aiwaku")`. They must be
+called after |aiwaku-setup| has been invoked.
+
+                                                             *aiwaku.setup()*
+setup({opts})
+  Initialize the plugin. Must be called once before any other function.
+  {opts} is merged with the defaults; unset keys fall back to defaults.
+
+                                                            *aiwaku.toggle()*
+toggle()
+  Open the sidebar if hidden, close it if visible.
+  When opening, resumes the current session if one is active; creates a new
+  session otherwise.
+
+                                                       *aiwaku.new_session()*
+new_session([{name}])
+  Create a new AI session with an optional {name}. If {name} is omitted a
+  unique timestamp-based name is generated. Opens the sidebar showing the new
+  session.
+
+                                                    *aiwaku.select_session()*
+select_session()
+  Open a `vim.ui.select` picker listing all active aiwaku tmux sessions.
+  Selecting an item opens that session in the sidebar.
+
+                                                    *aiwaku.rename_session()*
+rename_session()
+  Prompt (via `vim.ui.input`) to rename the current session. The "ai-" prefix
+  is always preserved so sessions remain visible in the picker.
+
+                                                    *aiwaku.clear_context()*
+clear_context()
+  Kill the current tmux session (terminating the AI process and its context)
+  and immediately start a fresh session in its place.
+
+                                                   *aiwaku.send_selection()*
+send_selection([{prompt}])
+  Send the current visual selection to the active AI session. Must be called
+  from a visual-mode mapping so that selection marks are set.
+
+  An optional {prompt} string is prepended before the selected text: >lua
+
+    require("aiwaku").send_selection("Explain this code:")
+    require("aiwaku").send_selection("Write tests for:")
+<
+  If the sidebar is not visible it is opened automatically before sending.
+
+==============================================================================
+8. LSP CODE ACTIONS                                        *aiwaku-code-actions*
+
+aiwaku ships a null-ls source that exposes AI actions through the standard LSP
+code action menu (`:lua vim.lsp.buf.code_action()`).
+
+null-ls (or its community fork none-ls) must be installed and have an active
+client attached to the buffer for actions to appear.
+
+Setup:~
+
+Register the source alongside your other null-ls sources: >lua
+
+  local null_ls = require("null-ls")
+  null_ls.setup({
+    sources = {
+      require("aiwaku.lsp-code-actions"),
+    },
+  })
+<
+
+Available actions:~
+
+  Send to Aiwaku              Send selection without a prompt prefix
+  AI: explain this code       Prepend "explain this code:" before selection
+  AI: refactor this code      Prepend "refactor this code:" before selection
+
+Each action calls |aiwaku.send_selection()| internally. The sidebar is opened
+automatically if it is not already visible.
+
+Actions are available for all filetypes when null-ls has an active client on
+the buffer.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
