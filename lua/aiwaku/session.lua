@@ -102,34 +102,30 @@ end
 
 ---Toggle the aiwaku: hide it if visible, show or create if hidden.
 ---Resumes the current tmux session when one is active; creates a new one otherwise.
-M.toggle = async.void(function()
+function M.toggle()
 	if state.busy then
 		return
 	end
-	state.busy = true
-	local function _()
-		if not state.config then
-			vim.notify("[aiwaku] Call setup() before toggle()", vim.log.levels.ERROR)
-			return
-		end
 
-		if window.win_visible(state.win_id) then
-			vim.api.nvim_win_close(state.win_id, false)
-			state.win_id = nil
-			return
-		end
-
-		local session = state.current_session and M.find_session(state.current_session)
-		if session then
-			M.open_session(session)
-			return
-		end
-
-		M.new_session()
+	if not state.config then
+		vim.notify("[aiwaku] Call setup() before toggle()", vim.log.levels.ERROR)
+		return
 	end
-	_()
-	state.busy = false
-end)
+
+	if window.win_visible(state.win_id) then
+		vim.api.nvim_win_close(state.win_id, false)
+		state.win_id = nil
+		return
+	end
+
+	local session = state.current_session and M.find_session(state.current_session)
+	if session then
+		M.open_session(session)
+		return
+	end
+
+	M.new_session()
+end
 
 ---Open a picker listing all active aiwaku tmux sessions.
 ---Selecting a session shows it in the sidebar.
@@ -170,53 +166,49 @@ end)
 
 ---Clear the context of the current session by killing its tmux session and
 ---starting a fresh one. If no session is active a new one is created instead.
-M.clear_context = async.void(function()
+function M.clear_context()
 	if state.busy then
 		return
 	end
-	state.busy = true
-	local function _()
-		if not state.config then
-			vim.notify("[aiwaku] Call setup() before clear_context()", vim.log.levels.ERROR)
-			return
-		end
 
-		local name = state.current_session
-		if not name then
-			M.new_session()
-			return
-		end
-
-		-- Kill the tmux session (this also terminates the running AI process)
-		if tmux.session_exists(name) then
-			tmux.kill_session(name)
-		end
-
-		-- Wipe the cached nvim buffer for this session
-		local cached_buf = state.session_bufnrs[name]
-		if terminal.buf_alive(cached_buf) then
-			if vim.fn.jobstop(vim.b[cached_buf].terminal_job_id) == 0 then
-				vim.notify(
-					"[aiwaku] Could not stop terminal job: " .. vim.b[cached_buf].terminal_job_id,
-					vim.log.levels.WARN
-				)
-			end
-			vim.api.nvim_buf_delete(cached_buf, { force = true })
-		end
-		state.session_bufnrs[name] = nil
-		state.current_session = nil
-
-		-- Close the sidebar window so new_session creates a clean split
-		if window.win_visible(state.win_id) then
-			vim.api.nvim_win_close(state.win_id, false)
-			state.win_id = nil
-		end
-
-		M.new_session()
+	if not state.config then
+		vim.notify("[aiwaku] Call setup() before clear_context()", vim.log.levels.ERROR)
+		return
 	end
-	_()
-	state.busy = false
-end)
+
+	local name = state.current_session
+	if not name then
+		M.new_session()
+		return
+	end
+
+	-- Kill the tmux session (this also terminates the running AI process)
+	if tmux.session_exists(name) then
+		tmux.kill_session(name)
+	end
+
+	-- Wipe the cached nvim buffer for this session
+	local cached_buf = state.session_bufnrs[name]
+	if terminal.buf_alive(cached_buf) then
+		if vim.fn.jobstop(vim.b[cached_buf].terminal_job_id) == 0 then
+			vim.notify(
+				"[aiwaku] Could not stop terminal job: " .. vim.b[cached_buf].terminal_job_id,
+				vim.log.levels.WARN
+			)
+		end
+		vim.api.nvim_buf_delete(cached_buf, { force = true })
+	end
+	state.session_bufnrs[name] = nil
+	state.current_session = nil
+
+	-- Close the sidebar window so new_session creates a clean split
+	if window.win_visible(state.win_id) then
+		vim.api.nvim_win_close(state.win_id, false)
+		state.win_id = nil
+	end
+
+	M.new_session()
+end
 
 ---Rename the current tmux session.
 ---Prompts the user with vim.ui.input showing only the suffix after the "ai-" prefix.

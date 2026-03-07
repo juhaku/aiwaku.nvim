@@ -1,6 +1,5 @@
 local M = {}
 
-local async = require("plenary.async")
 local state = require("aiwaku.state")
 local session = require("aiwaku.session")
 local window = require("aiwaku.window")
@@ -24,13 +23,14 @@ end
 ---Send the current visual selection to the active sidebar terminal.
 ---Must be called from a visual-mode mapping so the selection marks are set.
 ---@param prompt? string Optional prompt prefix prepended before the selection (e.g. "explain this code:")
-M.send_selection = async.void(function(prompt)
+M.send_selection = function(prompt)
+	local text = get_visual_selection()
+
 	if not state.config then
 		vim.notify("[aiwaku] Call setup() before send_selection()", vim.log.levels.ERROR)
 		return
 	end
 
-	local text = get_visual_selection()
 	if text == "" then
 		vim.notify("[aiwaku] No text selected", vim.log.levels.WARN)
 		return
@@ -49,7 +49,7 @@ M.send_selection = async.void(function(prompt)
 
 	if not window.win_visible(state.win_id) then
 		session.open_session(current_session)
-    end
+	end
 
 	local bufnr = state.session_bufnrs[session_name]
 	if not bufnr then
@@ -63,6 +63,6 @@ M.send_selection = async.void(function(prompt)
 	end
 
 	vim.api.nvim_chan_send(job_id, text)
-end)
+end
 
 return M

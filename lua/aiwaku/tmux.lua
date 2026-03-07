@@ -1,24 +1,16 @@
 local M = {}
 
-local async = require("plenary.async")
-local Job = require("plenary.job")
 local config = require("aiwaku.config")
 
----Run a tmux command non-blocking.
----Yields the current coroutine until the job exits.
----Must be called from within an async context (async.void).
+---Run a tmux command synchronously.
 ---@param args string[] Argument list passed to the tmux executable
 ---@return integer code Exit code of the tmux process
 ---@return string[] lines Stdout lines produced by the process
-local run_tmux = async.wrap(function(args, callback)
-	Job:new({
-		command = "tmux",
-		args = args,
-		on_exit = function(j, code)
-			callback(code, j:result())
-		end,
-	}):start()
-end, 2)
+local function run_tmux(args)
+	local cmd = vim.list_extend({ "tmux" }, args)
+	local lines = vim.fn.systemlist(cmd)
+	return vim.v.shell_error, lines
+end
 
 ---Return true when a tmux session with the given name exists.
 ---@param name string tmux session name
