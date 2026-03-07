@@ -143,6 +143,24 @@ keymaps ~
     },
 <
 
+                                               *aiwaku-config-lsp_code_actions*
+lsp_code_actions ~
+  Type: `table[]`
+
+  List of LSP code actions exposed through null-ls/none-ls. Each entry requires
+  a `title` string and may include an optional `prompt` string.
+
+  Default: >lua
+
+    lsp_code_actions = {
+      { title = "Send to Aiwaku" },
+      { title = "AI: explain this code", prompt = "explain this code:" },
+      { title = "AI: refactor this code", prompt = "refactor this code:" },
+    },
+<
+
+
+
                                                *aiwaku-config-terminal_keymaps*
 terminal_keymaps ~
   Type: `table`
@@ -164,6 +182,14 @@ terminal_keymaps ~
       ["<C-a>r"] = {
         command = "<C-\\><C-n><Cmd>lua require('aiwaku').rename_session()<CR>",
         description = "Aiwaku: rename session",
+      },
+      ["<C-a>s"] = {
+        command = "<C-\\><C-n><Cmd>lua require('aiwaku').select_session()<CR>",
+        description = "Aiwaku: select session",
+      },
+      ["<C-a>n"] = {
+        command = "<C-\\><C-n><Cmd>lua require('aiwaku').new_session()<CR>",
+        description = "Aiwaku: new session",
       },
     },
 <
@@ -187,6 +213,8 @@ Default terminal mode keymaps (inside the sidebar):~
   `<C-w>h`        Move focus to the left window
   `<C-w>l`        Move focus to the right window
   `<C-a>r`        Rename the current session
+  `<C-a>s`        Select from existing sessions (picker)
+  `<C-a>n`        Start a new session
 
 All keymaps can be overridden or disabled by setting `keymaps` and
 `terminal_keymaps` in your |aiwaku-setup| call. Pass an empty table to disable
@@ -263,7 +291,7 @@ Register the source alongside your other null-ls sources: >lua
   })
 <
 
-Available actions:~
+Default actions:~
 
   Send to Aiwaku              Send selection without a prompt prefix
   AI: explain this code       Prepend "explain this code:" before selection
@@ -271,6 +299,23 @@ Available actions:~
 
 Each action calls |aiwaku.send_selection()| internally. The sidebar is opened
 automatically if it is not already visible.
+
+Overriding the action list:~
+
+  You can replace the defaults during |aiwaku-setup|: >lua
+
+    require("aiwaku").setup({
+      cmd = { "opencode" },
+      lsp_code_actions = {
+        { title = "Send to Aiwaku" },
+        { title = "AI: write tests", prompt = "write tests for:" },
+        { title = "AI: review this code", prompt = "review this code:" },
+      },
+    })
+<
+
+  Each entry requires a `title`. `prompt` is optional; when omitted, aiwaku
+  sends the current selection without a prefix.
 
 Actions are available for all filetypes when null-ls has an active client on
 the buffer.

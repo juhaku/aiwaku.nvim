@@ -4,11 +4,16 @@
 
 ---@alias Aiwaku.Keymap.Mode "v" | "i" | "n" | "t" Keymap mode used to map the command with
 
+---@class Aiwaku.LspCodeAction
+---@field title string              Title shown in the LSP code action menu
+---@field prompt? string            Optional prompt prefix prepended before the selection
+
 ---@class Aiwaku.Config
----@field cmd string|string[]     CLI command to run (default: "copilot")
----@field width integer           Sidebar column width (default: 80)
----@field position "right"|"left" Which side to open (default: "right")
+---@field cmd string|string[]       CLI command to run (default: "copilot")
+---@field width integer             Sidebar column width (default: 80)
+---@field position "right"|"left"   Which side to open (default: "right")
 ---@field keymaps {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap} } Map of default action keymaps
+---@field lsp_code_actions Aiwaku.LspCodeAction[] Default LSP code actions exposed through null-ls/none-ls
 ---@field terminal_keymaps {[string]: Aiwaku.Keymap} Map of terminal buffer keymaps
 
 ---@class Aiwaku.Session

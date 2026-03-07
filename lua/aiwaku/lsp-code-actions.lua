@@ -1,30 +1,43 @@
-local null_ls = require("null-ls")
+local null_ls_ok, null_ls = pcall(require, "null-ls")
+local state = require("aiwaku.state")
 
-local function make_code_action(title, prompt)
+if not null_ls_ok then
+	vim.notify("[aiwaku] null_ls not loaded, cannot create LSP code actions", vim.log.levels.WARN)
+	return {}
+end
+
+---Build a single null-ls code action entry from an action definition.
+---@param action_def Aiwaku.LspCodeAction
+---@return table null_ls code action
+local function make_code_action(action_def)
 	return {
-		title = title,
+		title = action_def.title,
 		action = function()
-			local ok, aiwaku = pcall(require, "aiwaku")
-			if ok then
-				aiwaku.send_selection(prompt)
-			else
-				vim.notify("[aiwaku] Module not loaded", vim.log.levels.WARN)
-			end
+			require("aiwaku").send_selection(action_def.prompt)
 		end,
 	}
 end
 
+---null-ls source that exposes configured LSP code actions for all filetypes.
 local M = {
 	name = "aiwaku",
 	method = null_ls.methods.CODE_ACTION,
-	filetypes = {}, -- available for all filetypes
+	filetypes = {},
 	generator = {
 		fn = function(_params)
-			return {
-				make_code_action("Send to Aiwaku", nil),
-				make_code_action("AI: explain this code", "explain this code:"),
-				make_code_action("AI: refactor this code", "refactor this code:"),
-			}
+			if not state.config then
+				vim.notify("[aiwaku] Call setup() before using LSP code actions", vim.log.levels.ERROR)
+				return {}
+			end
+			local actions = {}
+			for _, action_def in ipairs(state.config.lsp_code_actions) do
+				if type(action_def.title) ~= "string" or action_def.title == "" then
+					vim.notify("[aiwaku] Skipping LSP code action with missing or empty title", vim.log.levels.WARN)
+				else
+					table.insert(actions, make_code_action(action_def))
+				end
+			end
+			return actions
 		end,
 	},
 }
