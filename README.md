@@ -24,11 +24,15 @@ aiwaku does not lock you into a specific AI tool. You point it at any command-li
 | [tmux](https://github.com/tmux/tmux) ≥ 3.0 | Session persistence and management |
 | Neovim ≥ 0.10 | Required for `vim.system` and modern API |
 
+> [!NOTE]
+> aiwaku requires tmux (>= 3.0) to provide persistent sessions. If tmux is not installed or not available on your PATH, session features (create, resume, list) will not work. Install tmux or ensure it is accessible from Neovim before using aiwaku.
+
 ### Neovim plugins
 
 | Plugin | Purpose |
 |---|---|
 | [nvim-lua/plenary.nvim](https://github.com/nvim-lua/plenary.nvim) | Async job execution |
+| [stevearc/dressing.nvim](https://github.com/stevearc/dressing.nvim) *(optional)* | Floating UI for `vim.ui.select`; without it Neovim falls back to the built-in command-line prompt. Other providers (e.g. telescope with the `ui-select` extension) also work. |
 | [nvimtools/none-ls.nvim](https://github.com/nvimtools/none-ls.nvim) *(optional)* | LSP code actions integration |
 
 ## Installation
@@ -38,7 +42,10 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   "juhaku/aiwaku.nvim",
-  dependencies = { "nvim-lua/plenary.nvim" },
+  dependencies = {
+        "nvim-lua/plenary.nvim",
+        "stevearc/dressing.nvim", -- optional: floating UI for vim.ui.select (without it Neovim falls back to the built-in command-line prompt)
+    },
   opts = { cmd = { "opencode" } } -- your CLI AI tool
 }
 ```
@@ -162,7 +169,7 @@ aiwaku ships a [null-ls](https://github.com/nvimtools/none-ls.nvim) source that 
 
 ### Setup
 
-Register the source alongside your other null-ls sources: >lua
+Register the source alongside your other null-ls sources:
 
 ```lua
 local null_ls = require("null-ls")
@@ -212,3 +219,12 @@ require("aiwaku").send_selection("Explain this code:")
 require("aiwaku").send_selection("Write tests for:")
 require("aiwaku").send_selection("Refactor to be more idiomatic:")
 ```
+
+
+
+## License
+
+Licensed under [MIT](LICENSE) license at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this plugin
+by you, shall be licensed as MIT, without any additional terms or conditions.
