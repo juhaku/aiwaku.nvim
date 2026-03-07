@@ -43,7 +43,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   "juhaku/aiwaku.nvim",
   dependencies = {
-        "nvim-lua/plenary.nvim"
+        "nvim-lua/plenary.nvim",
         "stevearc/dressing.nvim", -- optional: floating UI for vim.ui.select (without it Neovim falls back to the built-in command-line prompt)
     },
   opts = { cmd = { "opencode" } } -- your CLI AI tool
@@ -169,7 +169,7 @@ aiwaku ships a [null-ls](https://github.com/nvimtools/none-ls.nvim) source that 
 
 ### Setup
 
-Register the source alongside your other null-ls sources: >lua
+Register the source alongside your other null-ls sources:
 
 ```lua
 local null_ls = require("null-ls")
@@ -224,7 +224,7 @@ require("aiwaku").send_selection("Refactor to be more idiomatic:")
 
 ## License
 
-Licensed under [MIT](LICENSE-MIT) license at your option.
+Licensed under [MIT](LICENSE) license at your option.
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate
-by you, shall be dual licensed, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this plugin
+by you, shall be licensed as MIT, without any additional terms or conditions.
