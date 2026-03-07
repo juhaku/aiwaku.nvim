@@ -3,7 +3,6 @@ local M = {}
 local async = require("plenary.async")
 local state = require("aiwaku.state")
 local session = require("aiwaku.session")
-local terminal = require("aiwaku.terminal")
 local window = require("aiwaku.window")
 
 ---Get the visually selected text from the previous visual selection.
@@ -48,11 +47,15 @@ M.send_selection = async.void(function(prompt)
 		return
 	end
 
-	if not window.wi_visible(state.win_id) then
+	if not window.win_visible(state.win_id) then
 		session.open_session(current_session)
-	end
+    end
 
 	local bufnr = state.session_bufnrs[session_name]
+	if not bufnr then
+		vim.notify("[aiwaku] Session buffer is nil, failed to open session", vim.log.levels.WARN)
+		return
+	end
 	local job_id = vim.b[bufnr].terminal_job_id
 	if not job_id then
 		vim.notify("[aiwaku] Sidebar terminal has no job channel", vim.log.levels.WARN)

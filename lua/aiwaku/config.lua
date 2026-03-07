@@ -5,7 +5,7 @@ M.date_format = "%Y-%m-%dT%H:%M:%S%z"
 
 ---@type Aiwaku.Config
 M.defaults = {
-	cmd = { "" },
+	cmd = { "copilot" },
 	width = 80,
 	position = "right",
 	keymaps = {
