@@ -2,6 +2,8 @@
 
 A Neovim plugin that brings any CLI AI tool into your editor as a persistent sidebar panel.
 
+![aiwaku screenshot](screenshots/aiwaku.png)
+
 aiwaku does not lock you into a specific AI tool. You point it at any command-line AI assistant — `copilot`, `claude`, `opencode`, `aider`, or anything else — and it runs it in a tmux session attached to a Neovim terminal split. Sessions survive window toggles, editor restarts, and workspace switches. Your conversation context is always one keymap away.
 
 ## Features
