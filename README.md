@@ -115,6 +115,14 @@ require("aiwaku").setup({
     },
   },
 
+  -- LSP code actions shown via null-ls/none-ls.
+  -- Each entry needs a title; prompt is optional.
+  lsp_code_actions = {
+    { title = "Send to Aiwaku" },
+    { title = "AI: explain this code", prompt = "explain this code:" },
+    { title = "AI: refactor this code", prompt = "refactor this code:" },
+  },
+
   -- Keymaps active only inside the terminal buffer.
   terminal_keymaps = {
     ["<C-w>h"] = { command = "<C-\\><C-n><C-w>h", description = "Focus left" },
@@ -122,6 +130,14 @@ require("aiwaku").setup({
     ["<C-a>r"] = {
       command = "<C-\\><C-n><Cmd>lua require('aiwaku').rename_session()<CR>",
       description = "Aiwaku: rename session",
+    },
+    ["<C-a>s"] = {
+      command = "<C-\\><C-n><Cmd>lua require('aiwaku').select_session()<CR>",
+      description = "Aiwaku: select session",
+    },
+    ["<C-a>n"] = {
+      command = "<C-\\><C-n><Cmd>lua require('aiwaku').new_session()<CR>",
+      description = "Aiwaku: new session",
     },
   },
 })
@@ -137,6 +153,7 @@ require("aiwaku").setup({
 | `width` | `integer` | `80` | Sidebar panel width in columns |
 | `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
 | `keymaps` | `table` | see above | Normal/visual mode keymaps |
+| `lsp_code_actions` | `{ title = string, prompt? = string }[]` | see above | LSP code actions exposed through null-ls/none-ls |
 | `terminal_keymaps` | `table` | see above | Keymaps active inside the terminal buffer |
 
 ## Default Keymaps
@@ -162,6 +179,8 @@ require("aiwaku").setup({
 |---|---|
 | `<C-w>h` | Move focus to the left window |
 | `<C-w>l` | Move focus to the right window |
+| `<C-a>s` | Select from existing sessions |
+| `<C-a>n` | Start a new session |
 | `<C-a>r` | Rename the current session |
 
 
@@ -183,9 +202,9 @@ null_ls.setup({
 })
 ```
 
-### Available actions
+### Default actions
 
-The following actions appear in the code action menu for any filetype when null-ls is active on the buffer:
+The following actions are included by default and appear in the code action menu for any filetype when null-ls is active on the buffer:
 
 | Action | Behaviour |
 |---|---|
@@ -194,6 +213,23 @@ The following actions appear in the code action menu for any filetype when null-
 | **AI: refactor this code** | Prepend `"refactor this code:"` before the selection |
 
 Each action calls `send_selection()` internally, so the sidebar is opened automatically if it is not already visible.
+
+### Overriding the action list
+
+You can replace the default action list during setup:
+
+```lua
+require("aiwaku").setup({
+  cmd = { "opencode" },
+  lsp_code_actions = {
+    { title = "Send to Aiwaku" },
+    { title = "AI: write tests", prompt = "write tests for:" },
+    { title = "AI: review this code", prompt = "review this code:" },
+  },
+})
+```
+
+Each entry requires a `title`. The `prompt` field is optional; when omitted, aiwaku sends the current selection without a prefix.
 
 > **Note:** null-ls (or its community fork [none-ls](https://github.com/nvimtools/none-ls.nvim)) must be installed and have an active client attached to the buffer for code actions to appear.
 
