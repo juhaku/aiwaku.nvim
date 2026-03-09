@@ -11,6 +11,7 @@ CONTENTS                                                       *aiwaku-contents*
   6. Keymaps .............................................. |aiwaku-keymaps|
   7. API .................................................... |aiwaku-api|
   8. LSP Code Actions ................................. |aiwaku-code-actions|
+  9. Statusline Integration .................. |aiwaku-statusline|
 
 ==============================================================================
 1. INTRODUCTION                                                   *aiwaku-intro*
@@ -133,6 +134,10 @@ keymaps ~
           command = function() require("aiwaku").rename_session() end,
           description = "Aiwaku: rename session",
         },
+        ["<leader>ab"] = {
+          command = function() require("aiwaku").send_buffer() end,
+          description = "Aiwaku: send buffer",
+        },
       },
       [{ "v" }] = {
         ["<leader>ai"] = {
@@ -148,7 +153,9 @@ lsp_code_actions ~
   Type: `table[]`
 
   List of LSP code actions exposed through null-ls/none-ls. Each entry requires
-  a `title` string and may include an optional `prompt` string.
+  a `title` string and may include an optional `prompt` string. Entries with
+  `buffer = true` dispatch to |aiwaku.send_buffer()| instead of
+  |aiwaku.send_selection()|.
 
   Default: >lua
 
@@ -156,6 +163,8 @@ lsp_code_actions ~
       { title = "Send to Aiwaku" },
       { title = "AI: explain this code", prompt = "explain this code:" },
       { title = "AI: refactor this code", prompt = "refactor this code:" },
+      { title = "AI: send this file", buffer = true },
+      { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
     },
 <
 
@@ -191,6 +200,14 @@ terminal_keymaps ~
         command = "<C-\\><C-n><Cmd>lua require('aiwaku').new_session()<CR>",
         description = "Aiwaku: new session",
       },
+      ["<C-a>c"] = {
+        command = "<C-\\><C-n><Cmd>lua require('aiwaku').clear_context()<CR>",
+        description = "Aiwaku: clear context",
+      },
+      ["<C-o>"] = {
+        command = "<C-\\><C-n><Cmd>lua require('aiwaku').open_cword_in_tab()<CR>",
+        description = "Aiwaku: open file under cursor in new tab",
+      },
     },
 <
 
@@ -203,6 +220,7 @@ Default normal mode keymaps:~
   `<leader>an`    Start a new session
   `<leader>as`    Select from existing sessions (picker)
   `<leader>ar`    Rename the current session
+  `<leader>ab`    Send the current buffer to the AI
 
 Default visual mode keymaps:~
 
@@ -215,6 +233,8 @@ Default terminal mode keymaps (inside the sidebar):~
   `<C-a>r`        Rename the current session
   `<C-a>s`        Select from existing sessions (picker)
   `<C-a>n`        Start a new session
+  `<C-a>c`        Clear context (kill session and start fresh)
+  `<C-o>`         Open file path under cursor in a new tab
 
 All keymaps can be overridden or disabled by setting `keymaps` and
 `terminal_keymaps` in your |aiwaku-setup| call. Pass an empty table to disable
@@ -270,6 +290,24 @@ send_selection([{prompt}])
 <
   If the sidebar is not visible it is opened automatically before sending.
 
+                                                   *aiwaku.send_buffer()*
+send_buffer([{prompt}])
+  Send all lines of the current buffer to the active AI session.
+  A context header (filename and filetype) is automatically prepended.
+  If the sidebar is not visible it is opened automatically.
+
+                                                   *aiwaku.open_cword_in_tab()*
+open_cword_in_tab()
+  Open the file path under the cursor in a new tab. Strips optional :line
+  or :line:col suffixes. Falls back to cwd-relative lookup if the path is
+  not absolute. Issues a WARN notification if the file cannot be found.
+
+                                                   *aiwaku.session_name()*
+session_name()
+  Return the display name of the active AI session with the "ai-" prefix
+  stripped. Returns nil when no session is active or before setup() is
+  called. Safe to call from statusline expressions at any time.
+
 ==============================================================================
 8. LSP CODE ACTIONS                                        *aiwaku-code-actions*
 
@@ -296,9 +334,12 @@ Default actions:~
   Send to Aiwaku              Send selection without a prompt prefix
   AI: explain this code       Prepend "explain this code:" before selection
   AI: refactor this code      Prepend "refactor this code:" before selection
+  AI: send this file          Send full buffer without a prompt prefix
+  AI: explain this file       Prepend "explain this file:" before buffer content
 
-Each action calls |aiwaku.send_selection()| internally. The sidebar is opened
-automatically if it is not already visible.
+Actions without `buffer = true` call |aiwaku.send_selection()| internally.
+Actions with `buffer = true` call |aiwaku.send_buffer()| instead. The sidebar
+is opened automatically if it is not already visible.
 
 Overriding the action list:~
 
@@ -315,10 +356,40 @@ Overriding the action list:~
 <
 
   Each entry requires a `title`. `prompt` is optional; when omitted, aiwaku
-  sends the current selection without a prefix.
+  sends the current selection without a prefix. Entries with `buffer = true`
+  dispatch to |aiwaku.send_buffer()| instead of |aiwaku.send_selection()|.
 
 Actions are available for all filetypes when null-ls has an active client on
 the buffer.
+
+==============================================================================
+9. STATUSLINE INTEGRATION                                    *aiwaku-statusline*
+
+|aiwaku.session_name()| returns the display name of the active session (with
+the "ai-" prefix stripped), or nil when no session is active.
+
+lualine example: >lua
+
+  {
+    function()
+      return " " .. (require("aiwaku").session_name() or "")
+    end,
+    cond = function()
+      return require("aiwaku").session_name() ~= nil
+    end,
+  }
+<
+
+Plain statusline example: >lua
+
+  _G.AiwakuStatusline = function()
+    local name = require("aiwaku").session_name()
+    return name and (" " .. name) or ""
+  end
+  vim.o.statusline = "%{%v:lua.AiwakuStatusline()%} %f %=%l:%c"
+<
+
+The function is safe to call before setup() — it returns nil without error.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

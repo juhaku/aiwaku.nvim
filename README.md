@@ -12,6 +12,7 @@ aiwaku does not lock you into a specific AI tool. You point it at any command-li
 - **Persistent sessions** — backed by tmux; context survives toggling the panel or restarting Neovim
 - **Multiple sessions** — create, switch, and rename sessions without losing context
 - **Send visual selection** — send selected code (with optional prompt prefix) directly to the AI
+- **Send entire buffer** — send the full current file (with filename and filetype context) to the AI
 - **LSP code actions** — send selections via the standard code action menu when null-ls is active
 - **Sidebar layout** — opens as a left or right vertical split with configurable width
 - **Async** — all tmux operations are non-blocking; the editor stays responsive
@@ -105,6 +106,10 @@ require("aiwaku").setup({
         command = function() require("aiwaku").rename_session() end,
         description = "Aiwaku: rename session",
       },
+      ["<leader>ab"] = {
+        command = function() require("aiwaku").send_buffer() end,
+        description = "Aiwaku: send buffer",
+      },
     },
     [{ "v" }] = {
       ["<leader>ai"] = {
@@ -120,6 +125,8 @@ require("aiwaku").setup({
     { title = "Send to Aiwaku" },
     { title = "AI: explain this code", prompt = "explain this code:" },
     { title = "AI: refactor this code", prompt = "refactor this code:" },
+    { title = "AI: send this file", buffer = true },
+    { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
   },
 
   -- Keymaps active only inside the terminal buffer.
@@ -137,6 +144,14 @@ require("aiwaku").setup({
     ["<C-a>n"] = {
       command = "<C-\\><C-n><Cmd>lua require('aiwaku').new_session()<CR>",
       description = "Aiwaku: new session",
+    },
+    ["<C-a>c"] = {
+      command = "<C-\\><C-n><Cmd>lua require('aiwaku').clear_context()<CR>",
+      description = "Aiwaku: clear context",
+    },
+    ["<C-o>"] = {
+      command = "<C-\\><C-n><Cmd>lua require('aiwaku').open_cword_in_tab()<CR>",
+      description = "Aiwaku: open file under cursor in new tab",
     },
   },
 })
@@ -165,6 +180,7 @@ require("aiwaku").setup({
 | `<leader>an` | Start a new session |
 | `<leader>as` | Select from existing sessions |
 | `<leader>ar` | Rename the current session |
+| `<leader>ab` | Send the current buffer to the AI |
 
 ### Visual mode
 
@@ -181,6 +197,8 @@ require("aiwaku").setup({
 | `<C-a>s` | Select from existing sessions |
 | `<C-a>n` | Start a new session |
 | `<C-a>r` | Rename the current session |
+| `<C-a>c` | Clear context (kill session and start fresh) |
+| `<C-o>` | Open file path under cursor in a new tab |
 
 
 ## LSP Code Actions
@@ -210,8 +228,10 @@ The following actions are included by default and appear in the code action menu
 | **Send to Aiwaku** | Send selection without a prompt prefix |
 | **AI: explain this code** | Prepend `"explain this code:"` before the selection |
 | **AI: refactor this code** | Prepend `"refactor this code:"` before the selection |
+| **AI: send this file** | Send the full buffer without a prompt prefix |
+| **AI: explain this file** | Prepend `"explain this file:"` before the buffer content |
 
-Each action calls `send_selection()` internally, so the sidebar is opened automatically if it is not already visible.
+Actions without `buffer = true` call `send_selection()` internally. Actions with `buffer = true` call `send_buffer()` instead. The sidebar is opened automatically if it is not already visible.
 
 ### Overriding the action list
 
@@ -228,7 +248,7 @@ require("aiwaku").setup({
 })
 ```
 
-Each entry requires a `title`. The `prompt` field is optional; when omitted, aiwaku sends the current selection without a prefix.
+Each entry requires a `title`. The `prompt` field is optional; when omitted, aiwaku sends the current selection without a prefix. Entries with `buffer = true` send the entire current buffer instead of the visual selection.
 
 > **Note:** null-ls (or its community fork [none-ls](https://github.com/nvimtools/none-ls.nvim)) must be installed and have an active client attached to the buffer for code actions to appear.
 
@@ -245,6 +265,9 @@ All functions are available on the `require("aiwaku")` table after calling `setu
 | `rename_session()` | Rename the current session interactively |
 | `clear_context()` | Kill the current session and start a fresh one |
 | `send_selection(prompt?)` | Send the current visual selection to the AI (optional prompt prefix) |
+| `send_buffer(prompt?)` | Send the entire current buffer to the AI (optional prompt prefix) |
+| `open_cword_in_tab()` | Open the file path under cursor (from AI output) in a new tab |
+| `session_name()` | Return the display name of the active session, or `nil` when none is active |
 
 ### Sending selections with a prompt
 
@@ -258,6 +281,55 @@ require("aiwaku").send_selection("Refactor to be more idiomatic:")
 ```
 
 
+
+### Sending the whole buffer
+
+`send_buffer` captures all lines of the current buffer and prepends a file-context header (filename and filetype) before sending:
+
+```lua
+require("aiwaku").send_buffer()
+require("aiwaku").send_buffer("Review this file for bugs:")
+require("aiwaku").send_buffer("Write a README for this module:")
+```
+
+If the sidebar is not visible it is opened automatically before sending.
+
+### Opening files from AI output
+
+When the AI references a file (e.g. `src/parser.lua:42`), place the cursor on that path in the terminal and press `<C-o>` to open it in a new Neovim tab. Line numbers in the form `file.lua:42` or `file.lua:42:5` are parsed and the cursor jumps there automatically. If the path is not absolute, aiwaku tries to resolve it relative to the current working directory.
+
+You can also open files from the terminal shell directly — aiwaku propagates `$NVIM` into the tmux session automatically:
+
+```sh
+nvim --server "$NVIM" --remote-tab src/parser.lua
+```
+
+## Statusline Integration
+
+`session_name()` returns the display name of the active AI session (the `ai-` prefix is stripped), or `nil` when no session is active.
+
+### lualine
+
+```lua
+{
+  function()
+    return " " .. (require("aiwaku").session_name() or "")
+  end,
+  cond = function()
+    return require("aiwaku").session_name() ~= nil
+  end,
+}
+```
+
+### Plain statusline
+
+```lua
+_G.AiwakuStatusline = function()
+  local name = require("aiwaku").session_name()
+  return name and (" " .. name) or ""
+end
+vim.o.statusline = "%{%v:lua.AiwakuStatusline()%} %f %=%l:%c"
+```
 
 ## License
 

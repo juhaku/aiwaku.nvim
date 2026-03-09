@@ -13,7 +13,11 @@ local function make_code_action(action_def)
 	return {
 		title = action_def.title,
 		action = function()
-			require("aiwaku").send_selection(action_def.prompt)
+			if action_def.buffer then
+				require("aiwaku").send_buffer(action_def.prompt)
+			else
+				require("aiwaku").send_selection(action_def.prompt)
+			end
 		end,
 	}
 end

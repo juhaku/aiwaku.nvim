@@ -34,6 +34,12 @@ M.defaults = {
 				end,
 				description = "Aiwaku: rename session",
 			},
+			["<leader>ab"] = {
+				command = function()
+					require("aiwaku").send_buffer()
+				end,
+				description = "Aiwaku: send buffer",
+			},
 		},
 		[{ "v" }] = {
 			["<leader>ai"] = {
@@ -46,6 +52,8 @@ M.defaults = {
 		{ title = "Send to Aiwaku" },
 		{ title = "AI: explain this code", prompt = "explain this code:" },
 		{ title = "AI: refactor this code", prompt = "refactor this code:" },
+		{ title = "AI: send this file", buffer = true },
+		{ title = "AI: explain this file", prompt = "explain this file:", buffer = true },
 	},
 	terminal_keymaps = {
 		["<C-w>h"] = { command = "<C-\\><C-n><C-w>h", description = "Focus left" },
@@ -61,6 +69,14 @@ M.defaults = {
 		["<C-a>n"] = {
 			command = "<C-\\><C-n><Cmd>lua require('aiwaku').new_session()<CR>",
 			description = "Aiwaku: new session",
+		},
+		["<C-a>c"] = {
+			command = "<C-\\><C-n><Cmd>lua require('aiwaku').clear_context()<CR>",
+			description = "Aiwaku: clear context",
+		},
+		["<C-o>"] = {
+			command = "<C-\\><C-n><Cmd>lua require('aiwaku').open_cword_in_tab()<CR>",
+			description = "Aiwaku: open file under cursor in new tab",
 		},
 	},
 }
