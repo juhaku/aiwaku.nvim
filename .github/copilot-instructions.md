@@ -41,3 +41,25 @@ Runtime requirements still matter for code changes:
 - `lsp-code-actions.lua` must remain safe to require even when null-ls is not installed or loaded; preserve the guarded `pcall(require, "null-ls")` and early `return {}` behavior.
 - Public configuration, dependencies, keymaps, and API behavior are documented in both `README.md` and `doc/aiwaku.nvim.txt`. Keep them in sync when user-facing behavior changes.
 - Lua type annotations in `lua/aiwaku/types.lua` are part of the development workflow. Prefer updating those annotations instead of adding ad-hoc type assumptions in implementation files.
+
+# Copilot Working Guidelines
+
+## Lua Code Changes
+- Follow the Lua Code Review Standards in `.github/instructions/lua.instructions.md`
+- Always create feature branches with descriptive names
+- Use conventional commit messages: feat(lua), fix(lua), docs(lua), etc.
+
+## Git Workflow
+- Branch naming: `feature/{description}` or `fix/{description}` or `chore/{description}` etc.
+- Commit message format: `type(scope): description`
+- One logical change per commit
+- Provide comprehensive PR descriptions: 
+  - PR description should be prettily formatted.
+  - The description should answer what is changed and why it's changed.
+  - Use subtitles to separate chapters in longer message.
+  - Use bullet points to describe a list of changes when applicable.
+  - Use code samples when applicable to demonstrate new functionality.
+
+## Tools Available
+- GitHub MCP Server for PR creation and GitHub operations
+- Git commands for local operations
