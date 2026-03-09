@@ -15,7 +15,6 @@ aiwaku does not lock you into a specific AI tool. You point it at any command-li
 - **LSP code actions** — send selections via the standard code action menu when null-ls is active
 - **Sidebar layout** — opens as a left or right vertical split with configurable width
 - **Async** — all tmux operations are non-blocking; the editor stays responsive
-- **Clear context** — kill and restart a session in one command
 
 ## Requirements
 
