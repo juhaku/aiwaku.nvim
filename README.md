@@ -231,7 +231,7 @@ The following actions are included by default and appear in the code action menu
 | **AI: send this file** | Send the full buffer without a prompt prefix |
 | **AI: explain this file** | Prepend `"explain this file:"` before the buffer content |
 
-Each action calls `send_selection()` internally, so the sidebar is opened automatically if it is not already visible.
+Actions without `buffer = true` call `send_selection()` internally. Actions with `buffer = true` call `send_buffer()` instead. The sidebar is opened automatically if it is not already visible.
 
 ### Overriding the action list
 
