@@ -68,7 +68,12 @@ end
 ---@param cmd string Shell command to run inside the new session
 ---@return string
 function M.new_session_cmd(name, cmd)
-	return "tmux new-session -s " .. vim.fn.shellescape(name) .. " " .. vim.fn.shellescape(cmd)
+	local env_flag = ""
+	local socket = vim.v.servername
+	if socket and socket ~= "" then
+		env_flag = " -e NVIM=" .. vim.fn.shellescape(socket)
+	end
+	return "tmux new-session -s " .. vim.fn.shellescape(name) .. env_flag .. " " .. vim.fn.shellescape(cmd)
 end
 
 ---Return the shell command for joining an existing tmux session.

@@ -65,4 +65,58 @@ M.send_selection = function(prompt)
 	vim.api.nvim_chan_send(job_id, text)
 end
 
+---Send the entire current buffer to the active sidebar terminal.
+---@param prompt? string Optional prompt prefix prepended before the buffer content
+M.send_buffer = function(prompt)
+	if not state.config then
+		vim.notify("[aiwaku] Call setup() before send_buffer()", vim.log.levels.ERROR)
+		return
+	end
+
+	local bufnr = vim.api.nvim_get_current_buf()
+	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+	if #lines == 0 or (#lines == 1 and lines[1] == "") then
+		vim.notify("[aiwaku] Buffer is empty", vim.log.levels.WARN)
+		return
+	end
+
+	local name = vim.api.nvim_buf_get_name(bufnr)
+	local filetype = vim.bo[bufnr].filetype
+	local display_name = (name ~= "" and name) or "<unnamed>"
+	local display_ft = (filetype ~= "" and filetype) or "unknown"
+
+	-- Build header so the AI knows the file context
+	local header = string.format("File: %s (%s)\n", display_name, display_ft)
+	local content = header .. table.concat(lines, "\n") .. "\n"
+
+	if prompt then
+		content = prompt .. "\n" .. content
+	end
+
+	local session_name = state.current_session
+	local current_session = session_name and session.find_session(session_name)
+	if not current_session then
+		vim.notify("[aiwaku] No active aiwaku session", vim.log.levels.WARN)
+		return
+	end
+
+	if not window.win_visible(state.win_id) then
+		session.open_session(current_session)
+	end
+
+	local buf = state.session_bufnrs[session_name]
+	if not buf then
+		vim.notify("[aiwaku] Session buffer is nil, failed to open session", vim.log.levels.WARN)
+		return
+	end
+	local job_id = vim.b[buf].terminal_job_id
+	if not job_id then
+		vim.notify("[aiwaku] Sidebar terminal has no job channel", vim.log.levels.WARN)
+		return
+	end
+
+	vim.api.nvim_chan_send(job_id, content)
+end
+
 return M

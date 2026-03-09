@@ -6,7 +6,8 @@
 
 ---@class Aiwaku.LspCodeAction
 ---@field title string              Title shown in the LSP code action menu
----@field prompt? string            Optional prompt prefix prepended before the selection
+---@field prompt? string            Optional prompt prefix prepended before the content
+---@field buffer? boolean           When true, sends the entire buffer instead of the visual selection
 
 ---@class Aiwaku.Config
 ---@field cmd string|string[]       CLI command to run (default: "copilot")
