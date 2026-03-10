@@ -1,0 +1,661 @@
+name: Issue Triage & Auto-Implementation
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to triage'
+        required: true
+        type: number
+
+permissions:
+  issues: write
+  models: read
+
+env:
+  # Model used for evaluation and code generation.
+  # Options: o3-mini (default), gpt-4o, o1, gpt-4o-mini, meta-llama-3.3-70b-instruct
+  GITHUB_MODELS_MODEL: o3-mini
+  GITHUB_MODELS_ENDPOINT: https://models.inference.ai.azure.com
+
+jobs:
+  triage:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      models: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Step 0: Resolve issue data (payload for issues event, API for dispatch) ─
+      - name: Resolve issue data
+        id: issue
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            let issueNumber, issueTitle, issueBody;
+
+            if (context.eventName === 'workflow_dispatch') {
+              issueNumber = parseInt(context.payload.inputs.issue_number, 10);
+              const { data } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+              });
+              issueTitle = data.title;
+              issueBody  = data.body || '(no description provided)';
+            } else {
+              issueNumber = context.payload.issue.number;
+              issueTitle  = context.payload.issue.title;
+              issueBody   = context.payload.issue.body || '(no description provided)';
+            }
+
+            core.setOutput('number', String(issueNumber));
+            core.setOutput('title',  issueTitle);
+            core.setOutput('body',   issueBody);
+
+
+      # ── Step 1: Gate auto-implementation to trusted authors ───────────────
+      - name: Check author trust
+        id: trust
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // workflow_dispatch is always triggered by an authenticated user with
+            // write access, so it is unconditionally trusted.
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('is_trusted', 'true');
+              return;
+            }
+
+            const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const association = context.payload.issue?.author_association ?? '';
+            const trusted = trustedAssociations.includes(association);
+
+            if (!trusted) {
+              core.notice(
+                'Issue author association "' + association + '" is not in the trusted list '
+                + '(' + trustedAssociations.join(', ') + '). '
+                + 'Auto-implementation will be skipped. '
+                + 'A maintainer can trigger it manually via workflow_dispatch.'
+              );
+            }
+
+            core.setOutput('is_trusted', String(trusted));
+
+      - name: Evaluate issue and apply labels
+        id: evaluate
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.title }}
+          ISSUE_BODY: ${{ steps.issue.outputs.body }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Strips uniform leading whitespace from multi-line template literals so
+            // prompts can be written with YAML-friendly indentation in this file.
+            const dedent = (s) => {
+              const lines = s.split('\n');
+              const content = lines.slice(1, -1);
+              const indent = Math.min(
+                ...content.filter(l => l.trim()).map(l => l.match(/^(\s*)/)[1].length)
+              );
+              return content.map(l => l.slice(indent)).join('\n');
+            };
+
+            // ── Build codebase context ─────────────────────────────────────
+            const sourceFiles = [
+              'README.md',
+              ...fs.readdirSync('lua', { recursive: true, withFileTypes: false })
+                .filter(f => f.endsWith('.lua'))
+                .sort()
+                .map(f => 'lua/' + f),
+            ];
+
+            let codebaseContext = '';
+            for (const file of sourceFiles) {
+              try {
+                const content = fs.readFileSync(file, 'utf8');
+                codebaseContext += '\n\n### ' + file + '\n```lua\n' + content + '\n```';
+              } catch {}
+            }
+            if (codebaseContext.length > 60000) {
+              codebaseContext = codebaseContext.slice(0, 60000) + '\n\n... (truncated)';
+            }
+
+            const issueTitle  = process.env.ISSUE_TITLE;
+            const issueBody   = process.env.ISSUE_BODY;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+
+            // ── Call GitHub Models API ─────────────────────────────────────
+            const prompt = dedent(`
+              You are a senior Lua/Neovim engineer triaging a GitHub issue for
+              **aiwaku.nvim** — a Neovim plugin that runs AI CLI tools (e.g. Claude Code, Aider)
+              inside a persistent tmux sidebar terminal.
+
+              ---
+              ## Issue #${issueNumber}: ${issueTitle}
+
+              ${issueBody}
+
+              ---
+              ## Codebase
+              ${codebaseContext}
+
+              ---
+              ## Your Task
+
+              Analyze the issue and respond ONLY with a valid JSON object.
+              No markdown fences, no commentary outside the JSON.
+
+              {
+                "type": "bug" | "enhancement" | "other",
+                "difficulty": <integer 1-5>,
+                "impact": <integer 1-5>,
+                "difficulty_reason": "<one sentence>",
+                "impact_reason": "<one sentence>",
+                "plan": {
+                  "summary": "<paragraph describing the proposed solution>",
+                  "affected_files": ["<repo-relative file paths>"],
+                  "steps": ["<ordered implementation steps>"]
+                }
+              }
+
+              Scoring guide:
+              - difficulty 1-3: localised Lua edits, clear scope, no new modules required
+              - difficulty 4-5: significant refactor, new modules, unclear scope, many files touched
+              - impact 4-5: fixes a crash/bug or adds a highly requested, core-workflow feature
+              - impact 1-3: cosmetic, edge-case, or nice-to-have improvement
+            `);
+
+            const response = await fetch(
+              process.env.GITHUB_MODELS_ENDPOINT + '/chat/completions',
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: 'Bearer ' + process.env.GITHUB_TOKEN,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: process.env.GITHUB_MODELS_MODEL,
+                  messages: [{ role: 'user', content: prompt }],
+                  temperature: 0.2,
+                  max_tokens: 2000,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const errText = await response.text();
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!WARNING]\n> 🤖 **Automated triage failed** — GitHub Models API returned HTTP '
+                  + response.status + '.\n> `' + errText.slice(0, 300) + '`\n\nManual triage required.',
+              });
+              core.setFailed('GitHub Models API error: ' + response.status);
+              return;
+            }
+
+            const apiData = await response.json();
+            const rawContent = apiData.choices?.[0]?.message?.content ?? '';
+
+            let ev;
+            try {
+              const jsonStr = rawContent
+                .replace(/^```(?:json)?\r?\n?/, '')
+                .replace(/\r?\n?```$/, '')
+                .trim();
+              ev = JSON.parse(jsonStr);
+            } catch {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!WARNING]\n> 🤖 **Automated triage failed** — could not parse model response as JSON.\n\nManual triage required.',
+              });
+              core.setFailed('Failed to parse model response as JSON');
+              return;
+            }
+
+            // ── Validate model response schema ────────────────────────────
+            const allowedTypes = ['bug', 'enhancement', 'other'];
+            const validationErrors = [];
+
+            if (!allowedTypes.includes(ev.type)) {
+              validationErrors.push('`type` must be one of: ' + allowedTypes.join(', ') + ' (got: ' + JSON.stringify(ev.type) + ')');
+            }
+
+            for (const field of ['difficulty', 'impact']) {
+              const val = ev[field];
+              if (!Number.isInteger(val) || val < 1 || val > 5) {
+                validationErrors.push('`' + field + '` must be an integer between 1 and 5 (got: ' + JSON.stringify(val) + ')');
+              }
+            }
+
+            if (!ev.plan || typeof ev.plan !== 'object') {
+              validationErrors.push('`plan` field is missing or not an object');
+            } else {
+              if (typeof ev.plan.summary !== 'string' || !ev.plan.summary.trim()) {
+                validationErrors.push('`plan.summary` must be a non-empty string');
+              }
+              if (!Array.isArray(ev.plan.affected_files)) {
+                validationErrors.push('`plan.affected_files` must be an array');
+              }
+              if (!Array.isArray(ev.plan.steps) || ev.plan.steps.length === 0) {
+                validationErrors.push('`plan.steps` must be a non-empty array');
+              }
+            }
+
+            if (validationErrors.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!WARNING]\n> 🤖 **Automated triage failed** — model response failed schema validation:\n>\n> - '
+                  + validationErrors.join('\n> - ')
+                  + '\n\nManual triage required.',
+              });
+              core.setFailed('Model response failed schema validation: ' + validationErrors.join('; '));
+              return;
+            }
+
+            // ── Apply labels ───────────────────────────────────────────────
+            const labels = [];
+            if (ev.type === 'bug')              labels.push('bug');
+            else if (ev.type === 'enhancement') labels.push('enhancement');
+
+            if (ev.impact < 4 || ev.type === 'other') labels.push('evaluation needed');
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels,
+            });
+
+            // ── Expose outputs ─────────────────────────────────────────────
+            core.setOutput('evaluation',          JSON.stringify(ev));
+            core.setOutput('should_plan_comment', String(ev.impact >= 4 && ev.difficulty >= 4));
+            core.setOutput('should_implement',    String(ev.impact >= 4 && ev.difficulty <= 3));
+            core.setOutput('low_impact',          String(ev.impact < 4));
+
+      # ── Step 2a: Low-impact — post evaluation summary ──────────────────────
+      - name: Post low-impact evaluation comment
+        if: steps.evaluate.outputs.low_impact == 'true'
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVALUATION: ${{ steps.evaluate.outputs.evaluation }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        with:
+          script: |
+            const ev          = JSON.parse(process.env.EVALUATION);
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: [
+                '## 🤖 Automated Issue Evaluation',
+                '',
+                '**Type:** ' + ev.type + ' | **Difficulty:** ' + ev.difficulty + '/5 | **Impact:** ' + ev.impact + '/5',
+                '',
+                'This issue has been evaluated as **low impact** (score ' + ev.impact + '/5) and has been labelled',
+                '`evaluation-needed` for manual review by a maintainer.',
+                '',
+                '<details>',
+                '<summary>Evaluation reasoning</summary>',
+                '',
+                '**Difficulty (' + ev.difficulty + '/5):** ' + ev.difficulty_reason,
+                '',
+                '**Impact (' + ev.impact + '/5):** ' + ev.impact_reason,
+                '',
+                '</details>',
+              ].join('\n'),
+            });
+
+      # ── Step 2b: Complex — post plan as issue comment ──────────────────────
+      - name: Post implementation plan as issue comment
+        if: steps.evaluate.outputs.should_plan_comment == 'true'
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVALUATION: ${{ steps.evaluate.outputs.evaluation }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        with:
+          script: |
+            const ev          = JSON.parse(process.env.EVALUATION);
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+
+            const plan = ev.plan || {};
+            const steps = Array.isArray(plan.steps) ? plan.steps : [];
+            const files = Array.isArray(plan.affected_files) ? plan.affected_files : [];
+
+            const planWarnings = [];
+            if (!ev.plan) {
+              planWarnings.push('- Evaluation result did not include a `plan` object.');
+            }
+            if (!Array.isArray(plan.steps)) {
+              planWarnings.push('- `plan.steps` was missing or not an array.');
+            }
+            if (!Array.isArray(plan.affected_files)) {
+              planWarnings.push('- `plan.affected_files` was missing or not an array.');
+            }
+
+            const stepsMarkdown = steps.length
+              ? steps.map((s, i) => (i + 1) + '. ' + s).join('\n')
+              : '_No structured implementation steps were provided in the evaluation output._';
+
+            const filesMarkdown = files.length
+              ? files.map(f => '- `' + f + '`').join('\n')
+              : '_No specific affected files were identified in the evaluation output._';
+
+            const bodyLines = [
+              '## 🤖 Automated Issue Analysis',
+              '',
+              '**Type:** ' + ev.type + ' | **Difficulty:** ' + ev.difficulty + '/5 | **Impact:** ' + ev.impact + '/5',
+              '',
+              '> This issue is high-impact but complex to implement. The plan below is provided',
+              '> for a human contributor to review and carry out.',
+              '',
+              '---',
+              '',
+              '### Summary',
+              '',
+              plan.summary || '_No plan summary was provided in the evaluation output._',
+              '',
+              '### Affected Files',
+              '',
+              filesMarkdown,
+              '',
+              '### Implementation Steps',
+              '',
+              stepsMarkdown,
+            ];
+
+            if (planWarnings.length > 0) {
+              bodyLines.push(
+                '',
+                '### Plan data warnings',
+                '',
+                '_The evaluation output was missing some structured plan fields. Please review and adjust the plan as needed._',
+                '',
+                planWarnings.join('\n')
+              );
+            }
+
+            bodyLines.push(
+              '',
+              '---',
+              '',
+              '<details>',
+              '<summary>Evaluation reasoning</summary>',
+              '',
+              '**Difficulty (' + ev.difficulty + '/5):** ' + ev.difficulty_reason,
+              '',
+              '**Impact (' + ev.impact + '/5):** ' + ev.impact_reason,
+              '',
+              '</details>'
+            );
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: bodyLines.join('\n'),
+            });
+
+      # ── Step 2c: Simple + impactful — generate code, commit, open PR ───────
+      - name: Auto-implement and open PR
+        if: steps.evaluate.outputs.should_implement == 'true' && steps.trust.outputs.is_trusted == 'true'
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVALUATION: ${{ steps.evaluate.outputs.evaluation }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.title }}
+          ISSUE_BODY: ${{ steps.issue.outputs.body }}
+        with:
+          script: |
+            const fs   = require('fs');
+            const path = require('path');
+            const { execSync } = require('child_process');
+
+            // Strips uniform leading whitespace from multi-line template literals.
+            const dedent = (s) => {
+              const lines = s.split('\n');
+              const content = lines.slice(1, -1);
+              const indent = Math.min(
+                ...content.filter(l => l.trim()).map(l => l.match(/^(\s*)/)[1].length)
+              );
+              return content.map(l => l.slice(indent)).join('\n');
+            };
+
+            const ev          = JSON.parse(process.env.EVALUATION);
+            const issueTitle  = process.env.ISSUE_TITLE;
+            const issueBody   = process.env.ISSUE_BODY;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
+
+            // ── Re-read codebase for implementation context ────────────────
+            const sourceFiles = [
+              'README.md',
+              ...fs.readdirSync('lua', { recursive: true, withFileTypes: false })
+                .filter(f => f.endsWith('.lua'))
+                .sort()
+                .map(f => 'lua/' + f),
+            ];
+
+            let codebaseContext = '';
+            for (const file of sourceFiles) {
+              try {
+                const content = fs.readFileSync(file, 'utf8');
+                codebaseContext += '\n\n### ' + file + '\n```lua\n' + content + '\n```';
+              } catch {}
+            }
+            if (codebaseContext.length > 60000) {
+              codebaseContext = codebaseContext.slice(0, 60000) + '\n\n... (truncated)';
+            }
+
+            const stepsText = ev.plan.steps.join('\n');
+
+            // ── Ask the model to generate code changes ─────────────────────
+            const prompt = dedent(`
+              You are implementing a GitHub issue for **aiwaku.nvim** (a Neovim plugin in Lua).
+
+              ---
+              ## Issue #${issueNumber}: ${issueTitle}
+
+              ${issueBody}
+
+              ---
+              ## Approved Plan
+
+              ${ev.plan.summary}
+
+              Steps:
+              ${stepsText}
+
+              Affected files: ${ev.plan.affected_files.join(', ')}
+
+              ---
+              ## Current Codebase
+              ${codebaseContext}
+
+              ---
+              ## Your Task
+
+              Implement the changes needed to resolve this issue. Coding conventions:
+              - Module pattern: all public symbols via M table, return M at end of file
+              - LuaDoc annotations on every public function (---@param, ---@return)
+              - vim.api.* over vim.fn.* where stable equivalents exist
+              - vim.notify(msg, vim.log.levels.LEVEL) with [aiwaku] prefix for user messages
+              - No redundant nil-guards; trust established invariants within the same execution path
+              - Conventional commit messages: type(scope): description
+
+              Respond ONLY with a valid JSON object. No markdown fences, no commentary outside JSON.
+
+              {
+                "files": [
+                  { "path": "<repo-relative path>", "content": "<complete file content>" }
+                ],
+                "commit_message": "<conventional commit message>",
+                "pr_title": "<short PR title>",
+                "pr_body": "<markdown PR description: what changed and why, with code examples if helpful>"
+              }
+            `);
+
+            const implResponse = await fetch(
+              process.env.GITHUB_MODELS_ENDPOINT + '/chat/completions',
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: 'Bearer ' + process.env.GITHUB_TOKEN,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: process.env.GITHUB_MODELS_MODEL,
+                  messages: [{ role: 'user', content: prompt }],
+                  temperature: 0.1,
+                  max_tokens: 8000,
+                }),
+              }
+            );
+
+            if (!implResponse.ok) {
+              const errText = await implResponse.text();
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!WARNING]\n> 🤖 **Auto-implementation failed** — GitHub Models API returned HTTP '
+                  + implResponse.status + ' during code generation.\n\n'
+                  + 'The issue plan has been evaluated but manual implementation is needed.\n\n'
+                  + '**Plan summary:** ' + ev.plan.summary,
+              });
+              core.setFailed('GitHub Models API error during implementation: ' + implResponse.status);
+              return;
+            }
+
+            const implData = await implResponse.json();
+            const rawImpl  = implData.choices?.[0]?.message?.content ?? '';
+
+            let impl;
+            try {
+              const jsonStr = rawImpl
+                .replace(/^```(?:json)?\r?\n?/, '')
+                .replace(/\r?\n?```$/, '')
+                .trim();
+              impl = JSON.parse(jsonStr);
+            } catch {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!WARNING]\n> 🤖 **Auto-implementation failed** — could not parse code generation response as JSON.\n\nManual implementation needed.\n\n**Plan summary:** ' + ev.plan.summary,
+              });
+              core.setFailed('Failed to parse implementation response as JSON');
+              return;
+            }
+
+            if (!impl.files || impl.files.length === 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!NOTE]\n> 🤖 The model determined no file changes are needed to resolve this issue.',
+              });
+              return;
+            }
+
+            // ── Set up git ─────────────────────────────────────────────────
+            execSync('git config user.name "github-actions[bot]"');
+            execSync('git config user.email "github-actions[bot]@users.noreply.github.com"');
+
+            // ── Create branch ──────────────────────────────────────────────
+            const slug = issueTitle
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '')
+              .slice(0, 40);
+            const branchName = 'copilot/issue-' + issueNumber + '-' + slug;
+
+            execSync('git checkout -b ' + branchName);
+
+            // ── Write files ────────────────────────────────────────────────
+            const { spawnSync } = require('child_process');
+            const workspaceRoot = process.cwd();
+
+            for (const { path: filePath, content } of impl.files) {
+              if (typeof filePath !== 'string') {
+                throw new Error('[aiwaku] Invalid file path from model');
+              }
+
+              // Normalize and validate the path to be repo-relative and safe.
+              const normalizedPath = path.posix.normalize(filePath.replace(/\\/g, '/'));
+
+              // Allowlist: only permit writes to lua/, doc/, and README.md.
+              // This prevents the model from touching Git internals (.git/),
+              // workflow/policy files (.github/), or any other sensitive paths.
+              const isAllowed =
+                normalizedPath === 'README.md' ||
+                normalizedPath.startsWith('lua/') ||
+                normalizedPath.startsWith('doc/');
+
+              if (!isAllowed) {
+                throw new Error('[aiwaku] Refusing to write path outside of allowed directories: ' + normalizedPath);
+              }
+
+              const absPath = path.join(workspaceRoot, normalizedPath);
+
+              fs.mkdirSync(path.dirname(absPath), { recursive: true });
+              fs.writeFileSync(absPath, content, 'utf8');
+
+              const gitAdd = spawnSync('git', ['add', '--', normalizedPath], { stdio: 'inherit' });
+              if (gitAdd.status !== 0) {
+                throw new Error('[aiwaku] git add failed for ' + normalizedPath);
+              }
+            }
+
+            // ── Commit ─────────────────────────────────────────────────────
+            const commitMsg = (impl.commit_message || 'feat: resolve issue #' + issueNumber).trim();
+            const fullMsg   = commitMsg + '\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>';
+            fs.writeFileSync('/tmp/aiwaku-commit-msg.txt', fullMsg, 'utf8');
+            execSync('git commit -F /tmp/aiwaku-commit-msg.txt');
+
+            // ── Push ───────────────────────────────────────────────────────
+            execSync('git push origin ' + branchName);
+
+            // ── Open PR ────────────────────────────────────────────────────
+            const repoUrl = context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo;
+            const prBody  = (impl.pr_body || ev.plan.summary).trim()
+              + '\n\nCloses #' + issueNumber
+              + '\n\n---\n'
+              + '*🤖 Auto-generated by the [issue triage workflow](' + repoUrl + '/actions)'
+              + ' using GitHub Models (`' + process.env.GITHUB_MODELS_MODEL + '`).*\n\n'
+              + 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>';
+
+            const baseBranch =
+              process.env.AIWAKU_BASE_BRANCH
+              || (context.payload.repository && context.payload.repository.default_branch)
+              || 'main';
+
+            await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: (impl.pr_title || 'fix: resolve #' + issueNumber + ' - ' + issueTitle).trim(),
+              head:  branchName,
+              base:  baseBranch,
+              body:  prBody,
+            });
