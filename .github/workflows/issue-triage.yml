@@ -25,6 +25,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write
+      models: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
