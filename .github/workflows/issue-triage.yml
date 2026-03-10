@@ -205,6 +205,48 @@ jobs:
               return;
             }
 
+            // ── Validate model response schema ────────────────────────────
+            const allowedTypes = ['bug', 'enhancement', 'other'];
+            const validationErrors = [];
+
+            if (!allowedTypes.includes(ev.type)) {
+              validationErrors.push('`type` must be one of: ' + allowedTypes.join(', ') + ' (got: ' + JSON.stringify(ev.type) + ')');
+            }
+
+            for (const field of ['difficulty', 'impact']) {
+              const val = ev[field];
+              if (!Number.isInteger(val) || val < 1 || val > 5) {
+                validationErrors.push('`' + field + '` must be an integer between 1 and 5 (got: ' + JSON.stringify(val) + ')');
+              }
+            }
+
+            if (!ev.plan || typeof ev.plan !== 'object') {
+              validationErrors.push('`plan` field is missing or not an object');
+            } else {
+              if (typeof ev.plan.summary !== 'string' || !ev.plan.summary.trim()) {
+                validationErrors.push('`plan.summary` must be a non-empty string');
+              }
+              if (!Array.isArray(ev.plan.affected_files)) {
+                validationErrors.push('`plan.affected_files` must be an array');
+              }
+              if (!Array.isArray(ev.plan.steps) || ev.plan.steps.length === 0) {
+                validationErrors.push('`plan.steps` must be a non-empty array');
+              }
+            }
+
+            if (validationErrors.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '> [!WARNING]\n> 🤖 **Automated triage failed** — model response failed schema validation:\n>\n> - '
+                  + validationErrors.join('\n> - ')
+                  + '\n\nManual triage required.',
+              });
+              core.setFailed('Model response failed schema validation: ' + validationErrors.join('; '));
+              return;
+            }
+
             // ── Ensure labels exist ────────────────────────────────────────
             const labelDefs = [
               { name: 'bug',               color: 'd73a4a', description: 'Something is not working' },
