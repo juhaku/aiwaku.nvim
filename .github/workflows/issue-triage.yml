@@ -451,10 +451,25 @@ jobs:
               : [];
 
             let codebaseContext = '';
+
+            const fenceLanguageForFile = (filename) => {
+              const ext = path.extname(filename).toLowerCase();
+              switch (ext) {
+                case '.lua':
+                  return 'lua';
+                case '.md':
+                  return 'markdown';
+                default:
+                  return '';
+              }
+            };
+
             for (const file of affectedFiles) {
               try {
                 const content = fs.readFileSync(file, 'utf8');
-                codebaseContext += '\n\n### ' + file + '\n```lua\n' + content + '\n```';
+                const fenceLang = fenceLanguageForFile(file);
+                const fence = fenceLang ? '```' + fenceLang : '```';
+                codebaseContext += '\n\n### ' + file + '\n' + fence + '\n' + content + '\n```';
               } catch {}
             }
             // Fall back to all Lua files if affected_files were empty or unreadable
