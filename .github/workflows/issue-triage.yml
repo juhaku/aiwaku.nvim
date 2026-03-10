@@ -18,7 +18,7 @@ env:
   # Model used for evaluation and code generation.
   # Options: o3-mini (default), gpt-4o, o1, gpt-4o-mini, meta-llama-3.3-70b-instruct
   GITHUB_MODELS_MODEL: o3-mini
-  GITHUB_MODELS_ENDPOINT: https://models.inference.ai.azure.com
+  GITHUB_MODELS_ENDPOINT: https://models.github.ai
 
 jobs:
   triage:
