@@ -513,10 +513,13 @@ jobs:
               ${codebaseContext}
 
               ---
+              ## Code Style
+              - 4 spaces indentation
+
+              ---
               ## Your Task
 
               Implement the changes needed to resolve this issue. Coding conventions:
-              - Keep the same existing indendation and formatting, format the code with stylua
               - Module pattern: all public symbols via M table, return M at end of file
               - LuaDoc annotations on every public function (---@param, ---@return)
               - vim.api.* over vim.fn.* where stable equivalents exist
