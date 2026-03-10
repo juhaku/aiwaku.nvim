@@ -623,10 +623,35 @@ jobs:
             execSync('git checkout -b ' + branchName);
 
             // ── Write files ────────────────────────────────────────────────
+            const { spawnSync } = require('child_process');
+            const workspaceRoot = process.cwd();
+
             for (const { path: filePath, content } of impl.files) {
-              fs.mkdirSync(path.dirname(filePath), { recursive: true });
-              fs.writeFileSync(filePath, content, 'utf8');
-              execSync('git add -- "' + filePath + '"');
+              if (typeof filePath !== 'string') {
+                throw new Error('[aiwaku] Invalid file path from model');
+              }
+
+              // Normalize and validate the path to be repo-relative and safe.
+              const normalizedPath = path.posix.normalize(filePath.replace(/\\/g, '/'));
+
+              if (
+                normalizedPath.startsWith('/') ||
+                normalizedPath.startsWith('~') ||
+                normalizedPath.includes('..') ||
+                normalizedPath.startsWith('.github/workflows/')
+              ) {
+                throw new Error('[aiwaku] Refusing to write unsafe path: ' + normalizedPath);
+              }
+
+              const absPath = path.join(workspaceRoot, normalizedPath);
+
+              fs.mkdirSync(path.dirname(absPath), { recursive: true });
+              fs.writeFileSync(absPath, content, 'utf8');
+
+              const gitAdd = spawnSync('git', ['add', '--', normalizedPath], { stdio: 'inherit' });
+              if (gitAdd.status !== 0) {
+                throw new Error('[aiwaku] git add failed for ' + normalizedPath);
+              }
             }
 
             // ── Commit ─────────────────────────────────────────────────────
