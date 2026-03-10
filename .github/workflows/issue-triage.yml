@@ -16,7 +16,7 @@ permissions:
 
 env:
   GITHUB_MODELS_EVALUATE_ISSUES_MODEL: openai/gpt-4.1-mini
-  GITHUB_MODELS_IMPLEMENT_MODEL: deepseek/deepseek-v3-0324
+  GITHUB_MODELS_IMPLEMENT_MODEL: openai/gpt-4.1-mini
   GITHUB_MODELS_ENDPOINT: https://models.github.ai
 
 jobs:
