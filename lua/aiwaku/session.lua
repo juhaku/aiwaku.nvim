@@ -16,14 +16,14 @@ local function gen_session_name()
 	return "ai-" .. vim.fn.strftime("%Y%m%d%H%M%S") .. "-" .. math.random(1000, 9999)
 end
 
----Build the shell command string for cfg.cmd.
+---Build the shell command string for a given CLI tool command.
+---@param tool Aiwaku.CliTool
 ---@return string
-local function resolve_cmd()
-	local cfg = state.config
-	if type(cfg.cmd) == "table" and vim.islist(cfg.cmd) then
-		return table.concat(cfg.cmd, " ")
+local function resolve_cmd(tool)
+	if type(tool.cmd) == "table" and vim.islist(tool.cmd) then
+		return table.concat(tool.cmd, " ")
 	end
-	return tostring(cfg.cmd)
+	return tostring(tool.cmd)
 end
 
 ---Find a tmux session by name.
@@ -65,12 +65,46 @@ function M.open_session(session)
 end
 
 ---Create a new aiwaku session (new tmux session + new terminal buffer).
+---@param tool_name? string Optional CLI tool name to select which command to run
 ---@param name? string Optional session name; defaults to a timestamp-based name.
----@return Aiwaku.Session|nil session The newly created session; or nil if setup is not called first.
-function M.new_session(name)
+---@return Aiwaku.Session|nil session The newly created session; or nil if setup is not called first or tool not found.
+function M.new_session(tool_name, name)
 	if not state.config then
 		vim.notify("[aiwaku] Call setup() before new_session()", vim.log.levels.ERROR)
 		return nil
+	end
+
+	local cli_tools = state.config.cmd
+	local tool
+
+	if not tool_name then
+		-- If only one tool configured, use it
+		if #cli_tools == 1 then
+			tool = cli_tools[1]
+		else
+			-- Prompt user to select a tool
+			local choices = {}
+			for _, t in ipairs(cli_tools) do
+				table.insert(choices, t.name)
+			end
+			local choice = vim.fn.inputlist(vim.list_extend({"Select CLI tool:"}, choices))
+			if choice < 1 or choice > #choices then
+				vim.notify("[aiwaku] Invalid CLI tool selection", vim.log.levels.ERROR)
+				return nil
+			end
+			tool = cli_tools[choice]
+		end
+	else
+		for _, t in ipairs(cli_tools) do
+			if t.name == tool_name then
+				tool = t
+				break
+			end
+		end
+		if not tool then
+			vim.notify("[aiwaku] CLI tool '" .. tool_name .. "' not found in config", vim.log.levels.ERROR)
+			return nil
+		end
 	end
 
 	local session_name = name or gen_session_name()
@@ -83,7 +117,7 @@ function M.new_session(name)
 
 	state.win_id = window.open_split()
 
-	local new_buf = terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, resolve_cmd()))
+	local new_buf = terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, resolve_cmd(tool)))
 	if new_buf == 0 then
 		return nil
 	end
@@ -102,7 +136,8 @@ end
 
 ---Toggle the aiwaku: hide it if visible, show or create if hidden.
 ---Resumes the current tmux session when one is active; creates a new one otherwise.
-function M.toggle()
+---@param tool_name? string Optional CLI tool name to create a new session with
+function M.toggle(tool_name)
 	if state.busy then
 		return
 	end
@@ -124,7 +159,7 @@ function M.toggle()
 		return
 	end
 
-	M.new_session()
+	M.new_session(tool_name)
 end
 
 ---Open a picker listing all active aiwaku tmux sessions.
@@ -147,12 +182,33 @@ M.select_session = async.void(function()
 			return
 		end
 
-		local item = ui_select(sessions, {
+		-- Group sessions by CLI tool name if possible
+		-- We assume session names start with ai- and optionally have tool name suffix
+
+		local cli_tools = state.config.cmd
+
+		local function get_tool_name_from_session_name(name)
+			-- Try to find a tool name substring in the session name
+			for _, tool in ipairs(cli_tools) do
+				if name:find(tool.name, 1, true) then
+					return tool.name
+				end
+			end
+			return "unknown"
+		end
+
+		local items = {}
+		for _, s in ipairs(sessions) do
+			s.tool_name = get_tool_name_from_session_name(s.name)
+			table.insert(items, s)
+		end
+
+		local item = ui_select(items, {
 			prompt = "Select AI session",
 			kind = "Aiwaku.Session",
 			format_item = function(s)
 				local active = (s.name == state.current_session) and " [active]" or ""
-				return s.name .. active .. " (" .. s.created_at .. ")"
+				return string.format("%s (%s) %s", s.name, s.tool_name, active)
 			end,
 		})
 
