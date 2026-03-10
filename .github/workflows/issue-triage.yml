@@ -292,46 +292,82 @@ jobs:
             const ev          = JSON.parse(process.env.EVALUATION);
             const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
-            const stepsMarkdown = ev.plan.steps.map((s, i) => (i + 1) + '. ' + s).join('\n');
-            const filesMarkdown = ev.plan.affected_files.map(f => '- `' + f + '`').join('\n');
+            const plan = ev.plan || {};
+            const steps = Array.isArray(plan.steps) ? plan.steps : [];
+            const files = Array.isArray(plan.affected_files) ? plan.affected_files : [];
+
+            const planWarnings = [];
+            if (!ev.plan) {
+              planWarnings.push('- Evaluation result did not include a `plan` object.');
+            }
+            if (!Array.isArray(plan.steps)) {
+              planWarnings.push('- `plan.steps` was missing or not an array.');
+            }
+            if (!Array.isArray(plan.affected_files)) {
+              planWarnings.push('- `plan.affected_files` was missing or not an array.');
+            }
+
+            const stepsMarkdown = steps.length
+              ? steps.map((s, i) => (i + 1) + '. ' + s).join('\n')
+              : '_No structured implementation steps were provided in the evaluation output._';
+
+            const filesMarkdown = files.length
+              ? files.map(f => '- `' + f + '`').join('\n')
+              : '_No specific affected files were identified in the evaluation output._';
+
+            const bodyLines = [
+              '## 🤖 Automated Issue Analysis',
+              '',
+              '**Type:** ' + ev.type + ' | **Difficulty:** ' + ev.difficulty + '/5 | **Impact:** ' + ev.impact + '/5',
+              '',
+              '> This issue is high-impact but complex to implement. The plan below is provided',
+              '> for a human contributor to review and carry out.',
+              '',
+              '---',
+              '',
+              '### Summary',
+              '',
+              plan.summary || '_No plan summary was provided in the evaluation output._',
+              '',
+              '### Affected Files',
+              '',
+              filesMarkdown,
+              '',
+              '### Implementation Steps',
+              '',
+              stepsMarkdown,
+            ];
+
+            if (planWarnings.length > 0) {
+              bodyLines.push(
+                '',
+                '### Plan data warnings',
+                '',
+                '_The evaluation output was missing some structured plan fields. Please review and adjust the plan as needed._',
+                '',
+                planWarnings.join('\n')
+              );
+            }
+
+            bodyLines.push(
+              '',
+              '---',
+              '',
+              '<details>',
+              '<summary>Evaluation reasoning</summary>',
+              '',
+              '**Difficulty (' + ev.difficulty + '/5):** ' + ev.difficulty_reason,
+              '',
+              '**Impact (' + ev.impact + '/5):** ' + ev.impact_reason,
+              '',
+              '</details>'
+            );
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
-              body: [
-                '## 🤖 Automated Issue Analysis',
-                '',
-                '**Type:** ' + ev.type + ' | **Difficulty:** ' + ev.difficulty + '/5 | **Impact:** ' + ev.impact + '/5',
-                '',
-                '> This issue is high-impact but complex to implement. The plan below is provided',
-                '> for a human contributor to review and carry out.',
-                '',
-                '---',
-                '',
-                '### Summary',
-                '',
-                ev.plan.summary,
-                '',
-                '### Affected Files',
-                '',
-                filesMarkdown,
-                '',
-                '### Implementation Steps',
-                '',
-                stepsMarkdown,
-                '',
-                '---',
-                '',
-                '<details>',
-                '<summary>Evaluation reasoning</summary>',
-                '',
-                '**Difficulty (' + ev.difficulty + '/5):** ' + ev.difficulty_reason,
-                '',
-                '**Impact (' + ev.impact + '/5):** ' + ev.impact_reason,
-                '',
-                '</details>',
-              ].join('\n'),
+              body: bodyLines.join('\n'),
             });
 
       # ── Step 2c: Simple + impactful — generate code, commit, open PR ───────
