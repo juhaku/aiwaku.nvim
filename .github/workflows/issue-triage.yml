@@ -3,6 +3,12 @@ name: Issue Triage & Auto-Implementation
 on:
   issues:
     types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to triage'
+        required: true
+        type: number
 
 permissions:
   issues: write
@@ -22,12 +28,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Step 1: Evaluate the issue and apply labels ─────────────────────────
+      # ── Step 0: Resolve issue data (payload for issues event, API for dispatch) ─
+      - name: Resolve issue data
+        id: issue
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            let issueNumber, issueTitle, issueBody;
+
+            if (context.eventName === 'workflow_dispatch') {
+              issueNumber = parseInt(context.payload.inputs.issue_number, 10);
+              const { data } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+              });
+              issueTitle = data.title;
+              issueBody  = data.body || '(no description provided)';
+            } else {
+              issueNumber = context.payload.issue.number;
+              issueTitle  = context.payload.issue.title;
+              issueBody   = context.payload.issue.body || '(no description provided)';
+            }
+
+            core.setOutput('number', String(issueNumber));
+            core.setOutput('title',  issueTitle);
+            core.setOutput('body',   issueBody);
+
+
       - name: Evaluate issue and apply labels
         id: evaluate
         uses: actions/github-script@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.title }}
+          ISSUE_BODY: ${{ steps.issue.outputs.body }}
         with:
           script: |
             const fs = require('fs');
@@ -69,9 +107,9 @@ jobs:
               codebaseContext = codebaseContext.slice(0, 60000) + '\n\n... (truncated)';
             }
 
-            const issueTitle  = context.payload.issue.title;
-            const issueBody   = context.payload.issue.body || '(no description provided)';
-            const issueNumber = context.payload.issue.number;
+            const issueTitle  = process.env.ISSUE_TITLE;
+            const issueBody   = process.env.ISSUE_BODY;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
             // ── Call GitHub Models API ─────────────────────────────────────
             const prompt = dedent(`
@@ -210,10 +248,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVALUATION: ${{ steps.evaluate.outputs.evaluation }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
         with:
           script: |
             const ev          = JSON.parse(process.env.EVALUATION);
-            const issueNumber = context.payload.issue.number;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -245,10 +284,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVALUATION: ${{ steps.evaluate.outputs.evaluation }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
         with:
           script: |
             const ev          = JSON.parse(process.env.EVALUATION);
-            const issueNumber = context.payload.issue.number;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
             const stepsMarkdown = ev.plan.steps.map((s, i) => (i + 1) + '. ' + s).join('\n');
             const filesMarkdown = ev.plan.affected_files.map(f => '- `' + f + '`').join('\n');
@@ -299,6 +339,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVALUATION: ${{ steps.evaluate.outputs.evaluation }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.title }}
+          ISSUE_BODY: ${{ steps.issue.outputs.body }}
         with:
           script: |
             const fs   = require('fs');
@@ -316,9 +359,9 @@ jobs:
             };
 
             const ev          = JSON.parse(process.env.EVALUATION);
-            const issueTitle  = context.payload.issue.title;
-            const issueBody   = context.payload.issue.body || '(no description provided)';
-            const issueNumber = context.payload.issue.number;
+            const issueTitle  = process.env.ISSUE_TITLE;
+            const issueBody   = process.env.ISSUE_BODY;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
             // ── Re-read codebase for implementation context ────────────────
             const sourceFiles = [
