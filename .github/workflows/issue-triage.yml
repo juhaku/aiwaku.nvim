@@ -619,11 +619,16 @@ jobs:
               + ' using GitHub Models (`' + process.env.GITHUB_MODELS_MODEL + '`).*\n\n'
               + 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>';
 
+            const baseBranch =
+              process.env.AIWAKU_BASE_BRANCH
+              || (context.payload.repository && context.payload.repository.default_branch)
+              || 'main';
+
             await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: (impl.pr_title || 'fix: resolve #' + issueNumber + ' - ' + issueTitle).trim(),
               head:  branchName,
-              base:  'master',
+              base:  baseBranch,
               body:  prBody,
             });
