@@ -604,13 +604,16 @@ jobs:
               // Normalize and validate the path to be repo-relative and safe.
               const normalizedPath = path.posix.normalize(filePath.replace(/\\/g, '/'));
 
-              if (
-                normalizedPath.startsWith('/') ||
-                normalizedPath.startsWith('~') ||
-                normalizedPath.includes('..') ||
-                normalizedPath.startsWith('.github/workflows/')
-              ) {
-                throw new Error('[aiwaku] Refusing to write unsafe path: ' + normalizedPath);
+              // Allowlist: only permit writes to lua/, doc/, and README.md.
+              // This prevents the model from touching Git internals (.git/),
+              // workflow/policy files (.github/), or any other sensitive paths.
+              const isAllowed =
+                normalizedPath === 'README.md' ||
+                normalizedPath.startsWith('lua/') ||
+                normalizedPath.startsWith('doc/');
+
+              if (!isAllowed) {
+                throw new Error('[aiwaku] Refusing to write path outside of allowed directories: ' + normalizedPath);
               }
 
               const absPath = path.join(workspaceRoot, normalizedPath);
