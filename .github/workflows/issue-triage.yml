@@ -174,7 +174,7 @@ jobs:
             `);
 
             const response = await fetch(
-              process.env.GITHUB_MODELS_EVALUATE_ISSUES_MODEL + '/inference/chat/completions',
+              process.env.GITHUB_MODELS_ENDPOINT + '/inference/chat/completions',
               {
                 method: 'POST',
                 headers: {
@@ -536,7 +536,7 @@ jobs:
             `);
 
             const implResponse = await fetch(
-              process.env.GITHUB_MODELS_IMPLEMENT_MODEL + '/inference/chat/completions',
+              process.env.GITHUB_MODELS_ENDPOINT + '/inference/chat/completions',
               {
                 method: 'POST',
                 headers: {
