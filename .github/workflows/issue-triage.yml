@@ -112,14 +112,11 @@ jobs:
               return content.map(l => l.slice(indent)).join('\n');
             };
 
-            // ── Build codebase context ─────────────────────────────────────
-            const sourceFiles = [
-              'README.md',
-              ...fs.readdirSync('lua', { recursive: true, withFileTypes: false })
-                .filter(f => f.endsWith('.lua'))
-                .sort()
-                .map(f => 'lua/' + f),
-            ];
+            // ── Build codebase context (Lua sources only, no README) ──────
+            const sourceFiles = fs.readdirSync('lua', { recursive: true, withFileTypes: false })
+              .filter(f => f.endsWith('.lua'))
+              .sort()
+              .map(f => 'lua/' + f);
 
             let codebaseContext = '';
             for (const file of sourceFiles) {
@@ -128,8 +125,8 @@ jobs:
                 codebaseContext += '\n\n### ' + file + '\n```lua\n' + content + '\n```';
               } catch {}
             }
-            if (codebaseContext.length > 60000) {
-              codebaseContext = codebaseContext.slice(0, 60000) + '\n\n... (truncated)';
+            if (codebaseContext.length > 20000) {
+              codebaseContext = codebaseContext.slice(0, 20000) + '\n\n... (truncated)';
             }
 
             const issueTitle  = process.env.ISSUE_TITLE;
@@ -448,24 +445,45 @@ jobs:
             const issueBody   = process.env.ISSUE_BODY;
             const issueNumber = parseInt(process.env.ISSUE_NUMBER, 10);
 
-            // ── Re-read codebase for implementation context ────────────────
-            const sourceFiles = [
-              'README.md',
-              ...fs.readdirSync('lua', { recursive: true, withFileTypes: false })
-                .filter(f => f.endsWith('.lua'))
-                .sort()
-                .map(f => 'lua/' + f),
-            ];
+            // ── Load only the files the evaluation identified as affected ──
+            const affectedFiles = Array.isArray(ev.plan.affected_files)
+              ? ev.plan.affected_files
+              : [];
 
             let codebaseContext = '';
-            for (const file of sourceFiles) {
+
+            const fenceLanguageForFile = (filename) => {
+              const ext = path.extname(filename).toLowerCase();
+              switch (ext) {
+                case '.lua':
+                  return 'lua';
+                case '.md':
+                  return 'markdown';
+                default:
+                  return '';
+              }
+            };
+
+            for (const file of affectedFiles) {
               try {
                 const content = fs.readFileSync(file, 'utf8');
-                codebaseContext += '\n\n### ' + file + '\n```lua\n' + content + '\n```';
+                const fenceLang = fenceLanguageForFile(file);
+                const fence = fenceLang ? '```' + fenceLang : '```';
+                codebaseContext += '\n\n### ' + file + '\n' + fence + '\n' + content + '\n```';
               } catch {}
             }
-            if (codebaseContext.length > 60000) {
-              codebaseContext = codebaseContext.slice(0, 60000) + '\n\n... (truncated)';
+            // Fall back to all Lua files if affected_files were empty or unreadable
+            if (!codebaseContext.trim()) {
+              for (const file of fs.readdirSync('lua', { recursive: true, withFileTypes: false })
+                .filter(f => f.endsWith('.lua')).sort().map(f => 'lua/' + f)) {
+                try {
+                  const content = fs.readFileSync(file, 'utf8');
+                  codebaseContext += '\n\n### ' + file + '\n```lua\n' + content + '\n```';
+                } catch {}
+              }
+            }
+            if (codebaseContext.length > 40000) {
+              codebaseContext = codebaseContext.slice(0, 40000) + '\n\n... (truncated)';
             }
 
             const stepsText = ev.plan.steps.join('\n');
