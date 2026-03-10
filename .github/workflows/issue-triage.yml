@@ -275,7 +275,7 @@ jobs:
             if (ev.type === 'bug')              labels.push('bug');
             else if (ev.type === 'enhancement') labels.push('enhancement');
 
-            if (ev.impact < 4) labels.push('evaluation needed');
+            if (ev.impact < 4 || ev.type === 'other') labels.push('evaluation needed');
 
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
