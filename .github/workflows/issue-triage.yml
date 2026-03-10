@@ -114,16 +114,10 @@ jobs:
             // ── Build codebase context ─────────────────────────────────────
             const sourceFiles = [
               'README.md',
-              'lua/aiwaku/types.lua',
-              'lua/aiwaku/config.lua',
-              'lua/aiwaku/state.lua',
-              'lua/aiwaku/init.lua',
-              'lua/aiwaku/session.lua',
-              'lua/aiwaku/tmux.lua',
-              'lua/aiwaku/terminal.lua',
-              'lua/aiwaku/window.lua',
-              'lua/aiwaku/selection.lua',
-              'lua/aiwaku/lsp-code-actions.lua',
+              ...fs.readdirSync('lua', { recursive: true, withFileTypes: false })
+                .filter(f => f.endsWith('.lua'))
+                .sort()
+                .map(f => 'lua/' + f),
             ];
 
             let codebaseContext = '';
@@ -275,30 +269,12 @@ jobs:
               return;
             }
 
-            // ── Ensure labels exist ────────────────────────────────────────
-            const labelDefs = [
-              { name: 'bug',               color: 'd73a4a', description: 'Something is not working' },
-              { name: 'enhancement',       color: 'a2eeef', description: 'New feature or request' },
-              { name: 'evaluation-needed', color: 'e4e669', description: 'Needs manual evaluation of impact/priority' },
-              { name: 'needs-triage',      color: 'ededed', description: 'Needs categorization' },
-            ];
-            for (const label of labelDefs) {
-              try {
-                await github.rest.issues.createLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  ...label,
-                });
-              } catch {}
-            }
-
             // ── Apply labels ───────────────────────────────────────────────
             const labels = [];
             if (ev.type === 'bug')              labels.push('bug');
             else if (ev.type === 'enhancement') labels.push('enhancement');
-            else                                labels.push('needs-triage');
 
-            if (ev.impact < 4) labels.push('evaluation-needed');
+            if (ev.impact < 4) labels.push('evaluation needed');
 
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -474,16 +450,10 @@ jobs:
             // ── Re-read codebase for implementation context ────────────────
             const sourceFiles = [
               'README.md',
-              'lua/aiwaku/types.lua',
-              'lua/aiwaku/config.lua',
-              'lua/aiwaku/state.lua',
-              'lua/aiwaku/init.lua',
-              'lua/aiwaku/session.lua',
-              'lua/aiwaku/tmux.lua',
-              'lua/aiwaku/terminal.lua',
-              'lua/aiwaku/window.lua',
-              'lua/aiwaku/selection.lua',
-              'lua/aiwaku/lsp-code-actions.lua',
+              ...fs.readdirSync('lua', { recursive: true, withFileTypes: false })
+                .filter(f => f.endsWith('.lua'))
+                .sort()
+                .map(f => 'lua/' + f),
             ];
 
             let codebaseContext = '';
