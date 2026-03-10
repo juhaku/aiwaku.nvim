@@ -12,11 +12,10 @@ on:
 
 permissions:
   issues: write
-  contents: write
-  pull-requests: write
   models: read
 
 env:
+  # Model used for evaluation and code generation.
   # Model used for evaluation and code generation.
   # Options: o3-mini (default), gpt-4o, o1, gpt-4o-mini, meta-llama-3.3-70b-instruct
   GITHUB_MODELS_MODEL: o3-mini
@@ -24,6 +23,9 @@ env:
 
 jobs:
   triage:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
