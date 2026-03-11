@@ -63,6 +63,12 @@ M.send_selection = function(prompt)
 	end
 
 	vim.api.nvim_chan_send(job_id, text)
+
+	vim.api.nvim_set_current_win(state.win_id)
+	if state.config.auto_submit then
+		vim.api.nvim_chan_send(job_id, "\r")
+	end
+	vim.cmd("startinsert")
 end
 
 ---Send the entire current buffer to the active sidebar terminal.
@@ -117,6 +123,12 @@ M.send_buffer = function(prompt)
 	end
 
 	vim.api.nvim_chan_send(job_id, content)
+
+	vim.api.nvim_set_current_win(state.win_id)
+	if state.config.auto_submit then
+		vim.api.nvim_chan_send(job_id, "\r")
+	end
+	vim.cmd("startinsert")
 end
 
 return M

@@ -120,6 +120,24 @@ position ~
 
   Which side of the screen to open the sidebar on.
 
+                                                     *aiwaku-config-auto_submit*
+auto_submit ~
+  Type: `boolean`
+  Default: `false`
+
+  When `true`, automatically sends a carriage-return (Enter key) to the AI
+  terminal after every `send_selection()` or `send_buffer()` call. This
+  triggers the AI tool to process the input immediately, without the user
+  pressing Enter manually. Useful for readline-based CLI tools such as
+  `copilot-cli`, `claude`, and `opencode`.
+
+  Enable in your setup call: >lua
+
+    require("aiwaku").setup({
+      auto_submit = true,
+    })
+<
+
                                                         *aiwaku-config-keymaps*
 keymaps ~
   Type: `table`

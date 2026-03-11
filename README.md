@@ -98,6 +98,10 @@ require("aiwaku").setup({
   -- Which side to open the sidebar on.
   position = "right", -- "right" | "left"
 
+  -- When true, automatically sends Enter after content is dispatched to the AI
+  -- terminal, triggering immediate processing without manual Enter press.
+  auto_submit = false,
+
   -- Normal/visual mode keymaps.
   -- Key: mode list, Value: map of lhs -> { command, description }
   keymaps = {
