@@ -10,6 +10,7 @@ aiwaku does not lock you into a specific AI tool. You point it at any command-li
 
 - **Tool-agnostic** — works with any CLI AI tool you configure
 - **Persistent sessions** — backed by tmux; context survives toggling the panel or restarting Neovim
+- **Human-readable session names** — auto-generated names like `ai-claude-quirky-tesla-a7f3` encode the tool and are easy to remember
 - **Multiple sessions** — create, switch, and rename sessions without losing context
 - **Send visual selection** — send selected code (with optional prompt prefix) directly to the AI
 - **Send entire buffer** — send the full current file (with filename and filetype context) to the AI
@@ -301,6 +302,27 @@ All functions are available on the `require("aiwaku")` table after calling `setu
 | `send_buffer(prompt?)` | Send the entire current buffer to the AI (optional prompt prefix) |
 | `open_cword_in_tab()` | Open the file path under cursor (from AI output) in a new tab |
 | `session_name()` | Return the display name of the active session, or `nil` when none is active |
+
+### Session Naming
+
+Sessions are created with auto-generated human-readable names in the format:
+
+```
+ai-<tool>-<adjective>-<noun>-<hex>
+```
+
+Examples:
+- `ai-claude-quirky-tesla-a7f3`
+- `ai-copilot-festive-hawking-c2e1`
+- `ai-opencode-mysterious-shannon-9f4b`
+
+The adjective-noun pair is drawn from a curated list of descriptive words and scientists' names (Docker-style), providing ~4,880 base combinations. The 4-character hex suffix adds ~65k variants, yielding **319 million** unique combinations to prevent collisions.
+
+You can optionally pass a custom session name to `new_session(name)` to override the default naming:
+
+```lua
+require("aiwaku").new_session("my-custom-name")
+```
 
 ### Sending selections with a prompt
 
