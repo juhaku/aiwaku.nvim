@@ -12,28 +12,11 @@ local ui_select = async.wrap(vim.ui.select, 3)
 local ui_input = async.wrap(vim.ui.input, 2)
 
 ---Generate a unique tmux session name for the aiwaku.
----Format: "ai-<tool>-<branch>-<adjective>-<noun>" (with git branch)
----     or "ai-<tool>-<adjective>-<noun>"           (fallback)
+---Format: "ai-<tool>-<adjective>-<noun>-<hex>"
 ---@param tool_name string  Name of the active CLI tool
----@return string name  e.g. "ai-claude-main-quirky-tesla"
+---@return string name  e.g. "ai-claude-quirky-tesla-a7f3"
 local function gen_session_name(tool_name)
-	local branch
-	local result = vim.system({ "git", "branch", "--show-current" }, { text = true }):wait()
-	if result.code == 0 then
-		branch = vim.trim(result.stdout or "")
-		-- Sanitise: replace tmux-unsafe chars and collapse consecutive hyphens
-		branch = branch:gsub("[^%w%-]", "-"):gsub("%-+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
-		if branch == "" then
-			branch = nil
-		elseif #branch > 30 then
-			branch = branch:sub(1, 30):gsub("%-+$", "")
-		end
-	end
-	local parts = { "ai", tool_name }
-	if branch then
-		table.insert(parts, branch)
-	end
-	table.insert(parts, words.random_pair())
+	local parts = { "ai", tool_name, words.random_pair() }
 	return table.concat(parts, "-")
 end
 
@@ -49,7 +32,7 @@ end
 
 ---Find a tmux session by name.
 ---Returns the session table when the tmux session exists, nil otherwise.
----@param name string tmux session name (e.g. "ai-claude-main-quirky-tesla")
+---@param name string tmux session name (e.g. "ai-claude-quirky-tesla-a7f3")
 ---@return Aiwaku.Session|nil
 function M.find_session(name)
 	if not tmux.session_exists(name) then
@@ -87,7 +70,7 @@ end
 
 ---Create a new aiwaku session (new tmux session + new terminal buffer).
 ---Uses the currently selected tool (set via select_tool()); falls back to the first configured tool.
----@param name? string Optional session name; defaults to a git-branch + random-words name.
+---@param name? string Optional session name; defaults to a tool + random-words name.
 ---@return Aiwaku.Session|nil session The newly created session, or nil if setup() was not called.
 function M.new_session(name)
 	if not state.config then

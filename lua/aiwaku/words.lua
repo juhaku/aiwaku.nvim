@@ -148,12 +148,19 @@ local nouns = {
 	"wright",
 }
 
----Return a random adjective-noun pair separated by a hyphen.
----@return string  e.g. "quirky-tesla"
+--- Seed the PRGN for uniqueness
+math.randomseed(os.time() * 1000000 + vim.fn.getpid())
+
+---Return a random adjective-noun pair with hex suffix, separated by hyphens.
+---@return string  e.g. "quirky-tesla-a7f3"
 function M.random_pair()
 	local adj = adjectives[math.random(#adjectives)]
 	local noun = nouns[math.random(#nouns)]
-	return adj .. "-" .. noun
+	local hex = ""
+	for _ = 1, 4 do
+		hex = hex .. string.format("%x", math.random(0, 15))
+	end
+	return adj .. "-" .. noun .. "-" .. hex
 end
 
 return M
