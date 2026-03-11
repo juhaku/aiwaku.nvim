@@ -4,7 +4,7 @@ local M = {}
 local config = require("aiwaku.config")
 local state = require("aiwaku.state")
 local session = require("aiwaku.session")
-local selection = require("aiwaku.send")
+local sender = require("aiwaku.send")
 
 M.toggle = session.toggle
 M.new_session = session.new_session
@@ -12,8 +12,8 @@ M.select_session = session.select_session
 M.select_tool = session.select_tool
 M.clear_context = session.clear_context
 M.rename_session = session.rename_session
-M.send_selection = selection.send_selection
-M.send_buffer = selection.send_buffer
+M.send_selection = sender.send_selection
+M.send_buffer = sender.send_buffer
 
 ---Return the display name of the current active AI session, suitable for use
 ---in a statusline or winbar. Returns nil when no session is active or before
