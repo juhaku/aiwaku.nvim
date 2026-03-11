@@ -10,6 +10,7 @@ CONTENTS                                                       *aiwaku-contents*
   5. Configuration .................................... |aiwaku-configuration|
   6. Keymaps .............................................. |aiwaku-keymaps|
   7. API .................................................... |aiwaku-api|
+     7.1 Session Naming ............................ |aiwaku-session-naming|
   8. LSP Code Actions ................................. |aiwaku-code-actions|
   9. Statusline Integration .................. |aiwaku-statusline|
 
@@ -306,9 +307,10 @@ toggle()
                                                        *aiwaku.new_session()*
 new_session([{name}])
   Create a new AI session with an optional {name}. If {name} is omitted a
-  unique timestamp-based name is generated. Opens the sidebar showing the new
-  session. Uses the tool selected via |aiwaku.select_tool()|; falls back to
-  the first configured tool.
+  unique auto-generated name is created using the active tool name, a random
+  adjective-noun pair, and a hex suffix (e.g. "ai-claude-quirky-tesla-a7f3").
+  Opens the sidebar showing the new session. Uses the tool selected via
+  |aiwaku.select_tool()|; falls back to the first configured tool.
 
                                                     *aiwaku.select_session()*
 select_session()
@@ -361,6 +363,27 @@ session_name()
   Return the display name of the active AI session with the "ai-" prefix
   stripped. Returns nil when no session is active or before setup() is
   called. Safe to call from statusline expressions at any time.
+
+==============================================================================
+7.1 Session Naming                                      *aiwaku-session-naming*
+
+Sessions are created with auto-generated human-readable names in the format: >
+
+  ai-<tool>-<adjective>-<noun>-<hex>
+<
+
+Examples:
+  • ai-claude-quirky-tesla-a7f3
+  • ai-copilot-festive-hawking-c2e1
+  • ai-opencode-mysterious-shannon-9f4b
+
+The adjective-noun pair is drawn from a curated list of descriptive words and
+scientists' names (Docker-style), providing ~4,880 base combinations. The
+4-character hex suffix adds ~65k variants, yielding 319 million unique
+combinations to prevent collisions across sessions.
+
+You can pass a custom {name} to |aiwaku.new_session(name)| to override the
+default naming.
 
 ==============================================================================
 8. LSP CODE ACTIONS                                        *aiwaku-code-actions*
