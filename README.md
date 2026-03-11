@@ -98,6 +98,10 @@ require("aiwaku").setup({
   -- Which side to open the sidebar on.
   position = "right", -- "right" | "left"
 
+  -- When true, automatically sends Enter after content is dispatched to the AI
+  -- terminal, triggering immediate processing without manual Enter press.
+  auto_submit = false,
+
   -- Normal/visual mode keymaps.
   -- Key: mode list, Value: map of lhs -> { command, description }
   keymaps = {
@@ -138,7 +142,7 @@ require("aiwaku").setup({
   -- LSP code actions shown via null-ls/none-ls.
   -- Each entry needs a title; prompt is optional.
   lsp_code_actions = {
-    { title = "Send to Aiwaku" },
+    { title = "AI: send selection" },
     { title = "AI: explain this code", prompt = "explain this code:" },
     { title = "AI: refactor this code", prompt = "refactor this code:" },
     { title = "AI: send this file", buffer = true },
@@ -149,6 +153,10 @@ require("aiwaku").setup({
   terminal_keymaps = {
     ["<C-w>h"] = { command = "<C-\\><C-n><C-w>h", description = "Focus left" },
     ["<C-w>l"] = { command = "<C-\\><C-n><C-w>l", description = "Focus right" },
+    ["<C-a>i"] = {
+      command = "<C-\\><C-n><Cmd>lua require('aiwaku').toggle()<CR>",
+      description = "Toggle Aiwaku",
+    },
     ["<C-a>r"] = {
       command = "<C-\\><C-n><Cmd>lua require('aiwaku').rename_session()<CR>",
       description = "Aiwaku: rename session",
@@ -186,6 +194,7 @@ require("aiwaku").setup({
 | `cmd` | `string \| string[] \| CliTool[]` | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted. |
 | `width` | `integer` | `80` | Sidebar panel width in columns |
 | `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
+| `auto_submit` | `boolean` | `false` | When true, sends Enter after content to trigger immediate AI processing |
 | `keymaps` | `table` | see above | Normal/visual mode keymaps |
 | `lsp_code_actions` | `{ title = string, prompt? = string }[]` | see above | LSP code actions exposed through null-ls/none-ls |
 | `terminal_keymaps` | `table` | see above | Keymaps active inside the terminal buffer |
@@ -215,6 +224,7 @@ require("aiwaku").setup({
 |---|---|
 | `<C-w>h` | Move focus to the left window |
 | `<C-w>l` | Move focus to the right window |
+| `<C-a>i` | Toggle the AI sidebar (open/close) |
 | `<C-a>s` | Select from existing sessions |
 | `<C-a>n` | Start a new session |
 | `<C-a>r` | Rename the current session |
@@ -247,7 +257,7 @@ The following actions are included by default and appear in the code action menu
 
 | Action | Behaviour |
 |---|---|
-| **Send to Aiwaku** | Send selection without a prompt prefix |
+| **AI: send selection** | Send selection without a prompt prefix |
 | **AI: explain this code** | Prepend `"explain this code:"` before the selection |
 | **AI: refactor this code** | Prepend `"refactor this code:"` before the selection |
 | **AI: send this file** | Send the full buffer without a prompt prefix |
@@ -263,7 +273,7 @@ You can replace the default action list during setup:
 require("aiwaku").setup({
   cmd = { "opencode" },
   lsp_code_actions = {
-    { title = "Send to Aiwaku" },
+    { title = "AI: send selection" },
     { title = "AI: write tests", prompt = "write tests for:" },
     { title = "AI: review this code", prompt = "review this code:" },
   },

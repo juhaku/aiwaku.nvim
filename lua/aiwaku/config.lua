@@ -48,6 +48,7 @@ M.defaults = {
 	cmd = { "copilot" },
 	width = 80,
 	position = "right",
+	auto_submit = false,
 	keymaps = {
 		[{ "n" }] = {
 			["<leader>ai"] = {
@@ -95,7 +96,7 @@ M.defaults = {
 		},
 	},
 	lsp_code_actions = {
-		{ title = "Send to Aiwaku" },
+		{ title = "AI: send selection" },
 		{ title = "AI: explain this code", prompt = "explain this code:" },
 		{ title = "AI: refactor this code", prompt = "refactor this code:" },
 		{ title = "AI: send this file", buffer = true },
@@ -104,6 +105,10 @@ M.defaults = {
 	terminal_keymaps = {
 		["<C-w>h"] = { command = "<C-\\><C-n><C-w>h", description = "Focus left" },
 		["<C-w>l"] = { command = "<C-\\><C-n><C-w>l", description = "Focus right" },
+		["<C-a>i"] = {
+			command = "<C-\\><C-n><Cmd>lua require('aiwaku').toggle()<CR>",
+			description = "Toggle Aiwaku",
+		},
 		["<C-a>r"] = {
 			command = "<C-\\><C-n><Cmd>lua require('aiwaku').rename_session()<CR>",
 			description = "Aiwaku: rename session",
