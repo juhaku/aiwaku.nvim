@@ -87,11 +87,24 @@ Minimal example: >lua
 
                                                             *aiwaku-config-cmd*
 cmd ~
-  Type: `string | string[]`
+  Type: `string | string[] | CliTool[]`
   Default: `{ "copilot" }`
 
-  The CLI command to run inside the tmux session. Use a list to avoid shell
-  quoting issues. The first element is used to derive the terminal buffer name.
+  The CLI tool(s) to run inside the tmux session. All formats are accepted:
+
+  Single tool (old formats still work): >lua
+    cmd = "aider --model gpt-4o"
+    cmd = { "/usr/local/bin/claude", "--model", "claude-3-5-sonnet" }
+<
+
+  Multiple named tools: >lua
+    cmd = {
+      { name = "Claude", cmd = { "claude", "--dangerously-skip-permissions" } },
+      { name = "Copilot", cmd = "copilot" },
+    }
+<
+  The `name` field is optional; when absent it is resolved from the `cmd`
+  basename. Use `select_tool()` to switch the active tool at runtime.
 
                                                           *aiwaku-config-width*
 width ~
@@ -137,6 +150,10 @@ keymaps ~
         ["<leader>ab"] = {
           command = function() require("aiwaku").send_buffer() end,
           description = "Aiwaku: send buffer",
+        },
+        ["<leader>at"] = {
+          command = function() require("aiwaku").select_tool() end,
+          description = "Aiwaku: select CLI tool",
         },
       },
       [{ "v" }] = {
@@ -204,6 +221,10 @@ terminal_keymaps ~
         command = "<C-\\><C-n><Cmd>lua require('aiwaku').clear_context()<CR>",
         description = "Aiwaku: clear context",
       },
+      ["<C-a>t"] = {
+        command = "<C-\\><C-n><Cmd>lua require('aiwaku').select_tool()<CR>",
+        description = "Aiwaku: select CLI tool",
+      },
       ["<C-o>"] = {
         command = "<C-\\><C-n><Cmd>lua require('aiwaku').open_cword_in_tab()<CR>",
         description = "Aiwaku: open file under cursor in new tab",
@@ -221,6 +242,7 @@ Default normal mode keymaps:~
   `<leader>as`    Select from existing sessions (picker)
   `<leader>ar`    Rename the current session
   `<leader>ab`    Send the current buffer to the AI
+  `<leader>at`    Select the active CLI tool (picker)
 
 Default visual mode keymaps:~
 
@@ -234,6 +256,7 @@ Default terminal mode keymaps (inside the sidebar):~
   `<C-a>s`        Select from existing sessions (picker)
   `<C-a>n`        Start a new session
   `<C-a>c`        Clear context (kill session and start fresh)
+  `<C-a>t`        Select the active CLI tool (picker)
   `<C-o>`         Open file path under cursor in a new tab
 
 All keymaps can be overridden or disabled by setting `keymaps` and
@@ -261,12 +284,20 @@ toggle()
 new_session([{name}])
   Create a new AI session with an optional {name}. If {name} is omitted a
   unique timestamp-based name is generated. Opens the sidebar showing the new
-  session.
+  session. Uses the tool selected via |aiwaku.select_tool()|; falls back to
+  the first configured tool.
 
                                                     *aiwaku.select_session()*
 select_session()
   Open a `vim.ui.select` picker listing all active aiwaku tmux sessions.
   Selecting an item opens that session in the sidebar.
+
+                                                       *aiwaku.select_tool()*
+select_tool()
+  Open a `vim.ui.select` picker to change the active CLI tool. The selected
+  tool is stored in state and used by all subsequent calls to
+  |aiwaku.new_session()|. When only one tool is configured the picker is
+  skipped and that tool is selected directly.
 
                                                     *aiwaku.rename_session()*
 rename_session()

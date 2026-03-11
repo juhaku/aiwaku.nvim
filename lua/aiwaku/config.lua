@@ -3,11 +3,49 @@ local M = {}
 ---Date format used when displaying session creation times (local timezone).
 M.date_format = "%Y-%m-%dT%H:%M:%S%z"
 
+---Resolve the display name for a CLI tool from its cmd value.
+---Used during normalization to derive tool names when not explicitly provided.
+---@param cmd string|string[] CLI command value
+---@return string name
+local function name_from_cmd(cmd)
+	local raw
+	if type(cmd) == "table" then
+		raw = tostring(cmd[1])
+	else
+		raw = cmd:match("^%S+") or cmd
+	end
+	return vim.fn.fnamemodify(raw, ":t")
+end
+
+---Normalize the user-supplied cmd config value to a list of Aiwaku.CliTool.
+---Accepts the old string and string[] formats alongside the new CliTool[] format.
+---@param cmd string|string[]|Aiwaku.CliTool[] Raw cmd value from config
+---@return Aiwaku.CliTool[]
+function M.normalize_cmd(cmd)
+	if type(cmd) == "string" then
+		return { { name = name_from_cmd(cmd), cmd = cmd } }
+	end
+	if type(cmd) == "table" and vim.islist(cmd) then
+		if type(cmd[1]) == "string" then
+			-- Old string[] format: { "claude", "--arg" }
+			return { { name = name_from_cmd(cmd), cmd = cmd } }
+		end
+		-- CliTool[] format — ensure every entry has a name
+		local out = {}
+		for _, tool in ipairs(cmd) do
+			table.insert(out, {
+				name = tool.name or name_from_cmd(tool.cmd),
+				cmd = tool.cmd,
+			})
+		end
+		return out
+	end
+	return { { name = "terminal", cmd = tostring(cmd) } }
+end
+
 ---@type Aiwaku.Config
 M.defaults = {
-	cmd = {
-		{name = "copilot", cmd = "copilot"},
-	},
+	cmd = { "copilot" },
 	width = 80,
 	position = "right",
 	keymaps = {
@@ -42,6 +80,12 @@ M.defaults = {
 				end,
 				description = "Aiwaku: send buffer",
 			},
+			["<leader>at"] = {
+				command = function()
+					require("aiwaku").select_tool()
+				end,
+				description = "Aiwaku: select CLI tool",
+			},
 		},
 		[{ "v" }] = {
 			["<leader>ai"] = {
@@ -75,6 +119,10 @@ M.defaults = {
 		["<C-a>c"] = {
 			command = "<C-\\><C-n><Cmd>lua require('aiwaku').clear_context()<CR>",
 			description = "Aiwaku: clear context",
+		},
+		["<C-a>t"] = {
+			command = "<C-\\><C-n><Cmd>lua require('aiwaku').select_tool()<CR>",
+			description = "Aiwaku: select CLI tool",
 		},
 		["<C-o>"] = {
 			command = "<C-\\><C-n><Cmd>lua require('aiwaku').open_cword_in_tab()<CR>",

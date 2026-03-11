@@ -46,7 +46,8 @@ Runtime requirements still matter for code changes:
 
 ## Lua Code Changes
 - Follow the Lua Code Review Standards in `.github/instructions/lua.instructions.md`
-- Always create feature branches with descriptive names
+- DO not do any breaking changes if anyway possible, if NOT always confirm first.
+- Always create feature branches with descriptive names.
 - Use conventional commit messages: feat(lua), fix(lua), docs(lua), etc.
 
 ## Git Workflow

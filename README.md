@@ -56,7 +56,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ### Minimal
 
-The only required option is `cmd` — the CLI AI command to run.
+The only required option is `cmd` — the CLI AI tool(s) to run.
 
 ```lua
 require("aiwaku").setup({
@@ -64,12 +64,24 @@ require("aiwaku").setup({
 })
 ```
 
-`cmd` can be a list (recommended, avoids shell quoting issues) or a plain string:
+`cmd` can be a plain string, a list (recommended, avoids shell quoting issues), or a list of
+named tool definitions for multi-tool setups:
 
 ```lua
-cmd = { "/usr/local/bin/claude", "--model", "claude-3-5-sonnet" }
+-- Single tool — all formats are equivalent and backward compatible:
 cmd = "aider --model gpt-4o"
+cmd = { "/usr/local/bin/claude", "--model", "claude-3-5-sonnet" }
+
+-- Multi-tool — select the active tool at runtime with <leader>at:
+cmd = {
+  { name = "Claude", cmd = { "claude", "--dangerously-skip-permissions" } },
+  { name = "Copilot", cmd = "copilot" },
+  { name = "Aider",  cmd = { "aider", "--model", "gpt-4o" } },
+}
 ```
+
+When multiple tools are configured, use `<leader>at` (or `:lua require("aiwaku").select_tool()`)
+to pick the active tool. New sessions are always created with the currently active tool.
 
 <details>
 <summary>Full default configuration</summary>
@@ -110,6 +122,10 @@ require("aiwaku").setup({
         command = function() require("aiwaku").send_buffer() end,
         description = "Aiwaku: send buffer",
       },
+      ["<leader>at"] = {
+        command = function() require("aiwaku").select_tool() end,
+        description = "Aiwaku: select CLI tool",
+      },
     },
     [{ "v" }] = {
       ["<leader>ai"] = {
@@ -149,6 +165,10 @@ require("aiwaku").setup({
       command = "<C-\\><C-n><Cmd>lua require('aiwaku').clear_context()<CR>",
       description = "Aiwaku: clear context",
     },
+    ["<C-a>t"] = {
+      command = "<C-\\><C-n><Cmd>lua require('aiwaku').select_tool()<CR>",
+      description = "Aiwaku: select CLI tool",
+    },
     ["<C-o>"] = {
       command = "<C-\\><C-n><Cmd>lua require('aiwaku').open_cword_in_tab()<CR>",
       description = "Aiwaku: open file under cursor in new tab",
@@ -163,7 +183,7 @@ require("aiwaku").setup({
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `cmd` | `string \| string[]` | `{ "copilot" }` | CLI command to run in the tmux session |
+| `cmd` | `string \| string[] \| CliTool[]` | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted. |
 | `width` | `integer` | `80` | Sidebar panel width in columns |
 | `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
 | `keymaps` | `table` | see above | Normal/visual mode keymaps |
@@ -181,6 +201,7 @@ require("aiwaku").setup({
 | `<leader>as` | Select from existing sessions |
 | `<leader>ar` | Rename the current session |
 | `<leader>ab` | Send the current buffer to the AI |
+| `<leader>at` | Select the active CLI tool |
 
 ### Visual mode
 
@@ -198,6 +219,7 @@ require("aiwaku").setup({
 | `<C-a>n` | Start a new session |
 | `<C-a>r` | Rename the current session |
 | `<C-a>c` | Clear context (kill session and start fresh) |
+| `<C-a>t` | Select the active CLI tool |
 | `<C-o>` | Open file path under cursor in a new tab |
 
 
@@ -260,8 +282,9 @@ All functions are available on the `require("aiwaku")` table after calling `setu
 |---|---|
 | `setup(opts)` | Initialize the plugin with your configuration |
 | `toggle()` | Open or close the sidebar |
-| `new_session(name?)` | Create a new AI session (optional name) |
+| `new_session(name?)` | Create a new AI session (uses the currently selected tool) |
 | `select_session()` | Open a picker to switch sessions |
+| `select_tool()` | Open a picker to change the active CLI tool |
 | `rename_session()` | Rename the current session interactively |
 | `clear_context()` | Kill the current session and start a fresh one |
 | `send_selection(prompt?)` | Send the current visual selection to the AI (optional prompt prefix) |

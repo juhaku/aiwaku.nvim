@@ -65,48 +65,16 @@ function M.open_session(session)
 end
 
 ---Create a new aiwaku session (new tmux session + new terminal buffer).
----@param tool_name? string Optional CLI tool name to select which command to run
+---Uses the currently selected tool (set via select_tool()); falls back to the first configured tool.
 ---@param name? string Optional session name; defaults to a timestamp-based name.
----@return Aiwaku.Session|nil session The newly created session; or nil if setup is not called first or tool not found.
-function M.new_session(tool_name, name)
+---@return Aiwaku.Session|nil session The newly created session, or nil if setup() was not called.
+function M.new_session(name)
 	if not state.config then
 		vim.notify("[aiwaku] Call setup() before new_session()", vim.log.levels.ERROR)
 		return nil
 	end
 
-	local cli_tools = state.config.cmd
-	local tool
-
-	if not tool_name then
-		-- If only one tool configured, use it
-		if #cli_tools == 1 then
-			tool = cli_tools[1]
-		else
-			-- Prompt user to select a tool
-			local choices = {}
-			for _, t in ipairs(cli_tools) do
-				table.insert(choices, t.name)
-			end
-			local choice = vim.fn.inputlist(vim.list_extend({"Select CLI tool:"}, choices))
-			if choice < 1 or choice > #choices then
-				vim.notify("[aiwaku] Invalid CLI tool selection", vim.log.levels.ERROR)
-				return nil
-			end
-			tool = cli_tools[choice]
-		end
-	else
-		for _, t in ipairs(cli_tools) do
-			if t.name == tool_name then
-				tool = t
-				break
-			end
-		end
-		if not tool then
-			vim.notify("[aiwaku] CLI tool '" .. tool_name .. "' not found in config", vim.log.levels.ERROR)
-			return nil
-		end
-	end
-
+	local tool = state.current_tool or state.config.cmd[1]
 	local session_name = name or gen_session_name()
 
 	-- Close the current window so a clean split is created
@@ -136,8 +104,7 @@ end
 
 ---Toggle the aiwaku: hide it if visible, show or create if hidden.
 ---Resumes the current tmux session when one is active; creates a new one otherwise.
----@param tool_name? string Optional CLI tool name to create a new session with
-function M.toggle(tool_name)
+function M.toggle()
 	if state.busy then
 		return
 	end
@@ -159,8 +126,49 @@ function M.toggle(tool_name)
 		return
 	end
 
-	M.new_session(tool_name)
+	M.new_session()
 end
+
+---Open a picker to select the active CLI tool.
+---Sets state.current_tool; new sessions will use this tool until changed.
+---When only one tool is configured, selects it directly without showing a picker.
+---@async
+M.select_tool = async.void(function()
+	if state.busy then
+		return
+	end
+	state.busy = true
+	local function _()
+		if not state.config then
+			vim.notify("[aiwaku] Call setup() before select_tool()", vim.log.levels.ERROR)
+			return
+		end
+
+		local tools = state.config.cmd
+
+		if #tools == 1 then
+			state.current_tool = tools[1]
+			vim.notify("[aiwaku] Using tool: " .. tools[1].name, vim.log.levels.INFO)
+			return
+		end
+
+		local tool = ui_select(tools, {
+			prompt = "Select CLI tool",
+			kind = "Aiwaku.CliTool",
+			format_item = function(t)
+				local active = (state.current_tool and state.current_tool.name == t.name) and " [active]" or ""
+				return t.name .. active
+			end,
+		})
+
+		if tool then
+			state.current_tool = tool
+			vim.notify("[aiwaku] Switched to tool: " .. tool.name, vim.log.levels.INFO)
+		end
+	end
+	_()
+	state.busy = false
+end)
 
 ---Open a picker listing all active aiwaku tmux sessions.
 ---Selecting a session shows it in the sidebar.
@@ -182,33 +190,12 @@ M.select_session = async.void(function()
 			return
 		end
 
-		-- Group sessions by CLI tool name if possible
-		-- We assume session names start with ai- and optionally have tool name suffix
-
-		local cli_tools = state.config.cmd
-
-		local function get_tool_name_from_session_name(name)
-			-- Try to find a tool name substring in the session name
-			for _, tool in ipairs(cli_tools) do
-				if name:find(tool.name, 1, true) then
-					return tool.name
-				end
-			end
-			return "unknown"
-		end
-
-		local items = {}
-		for _, s in ipairs(sessions) do
-			s.tool_name = get_tool_name_from_session_name(s.name)
-			table.insert(items, s)
-		end
-
-		local item = ui_select(items, {
+		local item = ui_select(sessions, {
 			prompt = "Select AI session",
 			kind = "Aiwaku.Session",
 			format_item = function(s)
 				local active = (s.name == state.current_session) and " [active]" or ""
-				return string.format("%s (%s) %s", s.name, s.tool_name, active)
+				return s.name .. active .. " (" .. s.created_at .. ")"
 			end,
 		})
 
