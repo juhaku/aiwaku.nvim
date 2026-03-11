@@ -4,7 +4,7 @@ local M = {}
 local config = require("aiwaku.config")
 local state = require("aiwaku.state")
 local session = require("aiwaku.session")
-local selection = require("aiwaku.selection")
+local selection = require("aiwaku.send")
 
 M.toggle = session.toggle
 M.new_session = session.new_session
