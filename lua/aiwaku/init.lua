@@ -9,6 +9,7 @@ local selection = require("aiwaku.selection")
 M.toggle = session.toggle
 M.new_session = session.new_session
 M.select_session = session.select_session
+M.select_tool = session.select_tool
 M.clear_context = session.clear_context
 M.rename_session = session.rename_session
 M.send_selection = selection.send_selection
@@ -69,6 +70,7 @@ end
 function M.setup(opts)
 	---@type Aiwaku.Config
 	state.config = vim.tbl_deep_extend("force", config.defaults, opts or {})
+	state.config.cmd = config.normalize_cmd(state.config.cmd)
 
 	local km = state.config.keymaps
 	local kopts = { noremap = true, silent = true }

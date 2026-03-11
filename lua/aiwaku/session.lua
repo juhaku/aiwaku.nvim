@@ -16,14 +16,14 @@ local function gen_session_name()
 	return "ai-" .. vim.fn.strftime("%Y%m%d%H%M%S") .. "-" .. math.random(1000, 9999)
 end
 
----Build the shell command string for cfg.cmd.
+---Build the shell command string for a given CLI tool command.
+---@param tool Aiwaku.CliTool
 ---@return string
-local function resolve_cmd()
-	local cfg = state.config
-	if type(cfg.cmd) == "table" and vim.islist(cfg.cmd) then
-		return table.concat(cfg.cmd, " ")
+local function resolve_cmd(tool)
+	if type(tool.cmd) == "table" and vim.islist(tool.cmd) then
+		return table.concat(tool.cmd, " ")
 	end
-	return tostring(cfg.cmd)
+	return tostring(tool.cmd)
 end
 
 ---Find a tmux session by name.
@@ -65,14 +65,16 @@ function M.open_session(session)
 end
 
 ---Create a new aiwaku session (new tmux session + new terminal buffer).
+---Uses the currently selected tool (set via select_tool()); falls back to the first configured tool.
 ---@param name? string Optional session name; defaults to a timestamp-based name.
----@return Aiwaku.Session|nil session The newly created session; or nil if setup is not called first.
+---@return Aiwaku.Session|nil session The newly created session, or nil if setup() was not called.
 function M.new_session(name)
 	if not state.config then
 		vim.notify("[aiwaku] Call setup() before new_session()", vim.log.levels.ERROR)
 		return nil
 	end
 
+	local tool = state.current_tool or state.config.cmd[1]
 	local session_name = name or gen_session_name()
 
 	-- Close the current window so a clean split is created
@@ -83,7 +85,7 @@ function M.new_session(name)
 
 	state.win_id = window.open_split()
 
-	local new_buf = terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, resolve_cmd()))
+	local new_buf = terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, resolve_cmd(tool)))
 	if new_buf == 0 then
 		return nil
 	end
@@ -126,6 +128,47 @@ function M.toggle()
 
 	M.new_session()
 end
+
+---Open a picker to select the active CLI tool.
+---Sets state.current_tool; new sessions will use this tool until changed.
+---When only one tool is configured, selects it directly without showing a picker.
+---@async
+M.select_tool = async.void(function()
+	if state.busy then
+		return
+	end
+	state.busy = true
+	local function _()
+		if not state.config then
+			vim.notify("[aiwaku] Call setup() before select_tool()", vim.log.levels.ERROR)
+			return
+		end
+
+		local tools = state.config.cmd
+
+		if #tools == 1 then
+			state.current_tool = tools[1]
+			vim.notify("[aiwaku] Using tool: " .. tools[1].name, vim.log.levels.INFO)
+			return
+		end
+
+		local tool = ui_select(tools, {
+			prompt = "Select CLI tool",
+			kind = "Aiwaku.CliTool",
+			format_item = function(t)
+				local active = (state.current_tool and state.current_tool.name == t.name) and " [active]" or ""
+				return t.name .. active
+			end,
+		})
+
+		if tool then
+			state.current_tool = tool
+			vim.notify("[aiwaku] Switched to tool: " .. tool.name, vim.log.levels.INFO)
+		end
+	end
+	_()
+	state.busy = false
+end)
 
 ---Open a picker listing all active aiwaku tmux sessions.
 ---Selecting a session shows it in the sidebar.

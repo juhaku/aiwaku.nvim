@@ -28,20 +28,13 @@ function M.setup_terminal_buf(bufnr)
 	end)
 end
 
----Extract the basename of the configured command for use in buffer names.
----Handles both string and list cmd values.
+---Extract the name of the current CLI tool for use in buffer names.
+---Uses the currently selected tool, falling back to the first configured tool.
 ---@return string name e.g. "copilot", "opencode"
 local function cmd_name()
-	local cmd = state.config and state.config.cmd
-	local raw
-	if type(cmd) == "table" and cmd[1] then
-		raw = tostring(cmd[1])
-	elseif type(cmd) == "string" then
-		raw = cmd:match("^%S+") or cmd
-	else
-		return "terminal"
-	end
-	return vim.fn.fnamemodify(raw, ":t")
+	local tool = state.current_tool
+		or (state.config and state.config.cmd and state.config.cmd[1])
+	return tool and tool.name or "terminal"
 end
 
 

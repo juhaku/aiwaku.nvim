@@ -9,8 +9,12 @@
 ---@field prompt? string            Optional prompt prefix prepended before the content
 ---@field buffer? boolean           When true, sends the entire buffer instead of the visual selection
 
+---@class Aiwaku.CliTool
+---@field name? string              Display name shown in pickers (resolved from cmd when absent)
+---@field cmd string|string[]       CLI command to run
+
 ---@class Aiwaku.Config
----@field cmd string|string[]       CLI command to run (default: "copilot")
+---@field cmd string|string[]|Aiwaku.CliTool[]  CLI tool(s) to run; old string/string[] formats are still accepted
 ---@field width integer             Sidebar column width (default: 80)
 ---@field position "right"|"left"   Which side to open (default: "right")
 ---@field keymaps {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap} } Map of default action keymaps
@@ -23,6 +27,7 @@
 
 ---@class Aiwaku.State
 ---@field current_session string|nil          Name of the currently active tmux session
+---@field current_tool Aiwaku.CliTool|nil     Currently selected CLI tool (set by select_tool(); falls back to cmd[1])
 ---@field session_bufnrs { [string]: integer } Cache of tmux session name → nvim buffer number for reuse
 ---@field win_id integer|nil                  Window ID of the visible sidebar window (nil when hidden)
 ---@field config Aiwaku.Config|nil            Resolved configuration (set by setup())
