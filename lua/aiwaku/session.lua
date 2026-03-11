@@ -6,14 +6,35 @@ local state = require("aiwaku.state")
 local tmux = require("aiwaku.tmux")
 local terminal = require("aiwaku.terminal")
 local window = require("aiwaku.window")
+local words = require("aiwaku.words")
 
 local ui_select = async.wrap(vim.ui.select, 3)
 local ui_input = async.wrap(vim.ui.input, 2)
 
 ---Generate a unique tmux session name for the aiwaku.
----@return string name  e.g. "ai-20260305234735-1234"
-local function gen_session_name()
-	return "ai-" .. vim.fn.strftime("%Y%m%d%H%M%S") .. "-" .. math.random(1000, 9999)
+---Format: "ai-<tool>-<branch>-<adjective>-<noun>" (with git branch)
+---     or "ai-<tool>-<adjective>-<noun>"           (fallback)
+---@param tool_name string  Name of the active CLI tool
+---@return string name  e.g. "ai-claude-main-quirky-tesla"
+local function gen_session_name(tool_name)
+	local branch
+	local result = vim.system({ "git", "branch", "--show-current" }, { text = true }):wait()
+	if result.code == 0 then
+		branch = vim.trim(result.stdout or "")
+		-- Sanitise: replace tmux-unsafe chars and collapse consecutive hyphens
+		branch = branch:gsub("[^%w%-]", "-"):gsub("%-+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
+		if branch == "" then
+			branch = nil
+		elseif #branch > 30 then
+			branch = branch:sub(1, 30):gsub("%-+$", "")
+		end
+	end
+	local parts = { "ai", tool_name }
+	if branch then
+		table.insert(parts, branch)
+	end
+	table.insert(parts, words.random_pair())
+	return table.concat(parts, "-")
 end
 
 ---Build the shell command string for a given CLI tool command.
@@ -28,7 +49,7 @@ end
 
 ---Find a tmux session by name.
 ---Returns the session table when the tmux session exists, nil otherwise.
----@param name string tmux session name (e.g. "ai-20260305234735-1234")
+---@param name string tmux session name (e.g. "ai-claude-main-quirky-tesla")
 ---@return Aiwaku.Session|nil
 function M.find_session(name)
 	if not tmux.session_exists(name) then
@@ -66,7 +87,7 @@ end
 
 ---Create a new aiwaku session (new tmux session + new terminal buffer).
 ---Uses the currently selected tool (set via select_tool()); falls back to the first configured tool.
----@param name? string Optional session name; defaults to a timestamp-based name.
+---@param name? string Optional session name; defaults to a git-branch + random-words name.
 ---@return Aiwaku.Session|nil session The newly created session, or nil if setup() was not called.
 function M.new_session(name)
 	if not state.config then
@@ -75,7 +96,7 @@ function M.new_session(name)
 	end
 
 	local tool = state.current_tool or state.config.cmd[1]
-	local session_name = name or gen_session_name()
+	local session_name = name or gen_session_name(tool.name)
 
 	-- Close the current window so a clean split is created
 	if window.win_visible(state.win_id) then

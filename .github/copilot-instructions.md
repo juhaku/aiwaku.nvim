@@ -51,6 +51,9 @@ Runtime requirements still matter for code changes:
 - Use conventional commit messages: feat(lua), fix(lua), docs(lua), etc.
 
 ## Git Workflow
+- DO not automatically push changes.
+- DO not automatically create a PR.
+  - Always confirm first the commit message format and PR description.
 - Branch naming: `feature/{description}` or `fix/{description}` or `chore/{description}` etc.
 - Commit message format: `type(scope): description`
 - One logical change per commit
