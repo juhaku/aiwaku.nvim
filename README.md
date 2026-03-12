@@ -127,6 +127,10 @@ require("aiwaku").setup({
         command = function() require("aiwaku").send_buffer() end,
         description = "Aiwaku: send buffer",
       },
+      ["<leader>ad"] = {
+        command = function() require("aiwaku").send_diagnostic() end,
+        description = "Aiwaku: send diagnostic",
+      },
       ["<leader>at"] = {
         command = function() require("aiwaku").select_tool() end,
         description = "Aiwaku: select CLI tool",
@@ -148,6 +152,9 @@ require("aiwaku").setup({
     { title = "AI: refactor this code", prompt = "refactor this code:" },
     { title = "AI: send this file", buffer = true },
     { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
+    { title = "AI: send diagnostics", diagnostic = true },
+    { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
+    { title = "AI: send file diagnostics", file_diagnostic = true },
   },
 
   -- Keymaps active only inside the terminal buffer.
@@ -197,7 +204,7 @@ require("aiwaku").setup({
 | `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
 | `auto_submit` | `boolean` | `false` | When true, sends Enter after content to trigger immediate AI processing |
 | `keymaps` | `table` | see above | Normal/visual mode keymaps |
-| `lsp_code_actions` | `{ title = string, prompt? = string }[]` | see above | LSP code actions exposed through null-ls/none-ls |
+| `lsp_code_actions` | `{ title = string, prompt? = string, buffer? = boolean, diagnostic? = boolean, file_diagnostic? = boolean }[]` | see above | LSP code actions exposed through null-ls/none-ls |
 | `terminal_keymaps` | `table` | see above | Keymaps active inside the terminal buffer |
 
 ## Default Keymaps
@@ -211,6 +218,7 @@ require("aiwaku").setup({
 | `<leader>as` | Select from existing sessions |
 | `<leader>ar` | Rename the current session |
 | `<leader>ab` | Send the current buffer to the AI |
+| `<leader>ad` | Send the diagnostic under cursor (or all buffer diagnostics if none under cursor) to the AI |
 | `<leader>at` | Select the active CLI tool |
 
 ### Visual mode
@@ -263,8 +271,11 @@ The following actions are included by default and appear in the code action menu
 | **AI: refactor this code** | Prepend `"refactor this code:"` before the selection |
 | **AI: send this file** | Send the full buffer without a prompt prefix |
 | **AI: explain this file** | Prepend `"explain this file:"` before the buffer content |
+| **AI: send diagnostics** | Send cursor-line diagnostic(s) — only shown when cursor line has a diagnostic |
+| **AI: fix diagnostics** | Prepend a fix prompt before cursor-line diagnostics — only shown when cursor line has a diagnostic |
+| **AI: send file diagnostics** | Send all diagnostics for the current file — only shown when the buffer has any diagnostic |
 
-Actions without `buffer = true` call `send_selection()` internally. Actions with `buffer = true` call `send_buffer()` instead. The sidebar is opened automatically if it is not already visible.
+Actions without `buffer`, `diagnostic`, or `file_diagnostic` call `send_selection()` internally. Actions with `buffer = true` call `send_buffer()`. Actions with `diagnostic = true` call `send_diagnostic()` and are only visible when the cursor line has a diagnostic. Actions with `file_diagnostic = true` call `send_file_diagnostics()` and are only visible when the buffer has at least one diagnostic. The sidebar is opened automatically if it is not already visible.
 
 ### Overriding the action list
 
@@ -281,7 +292,7 @@ require("aiwaku").setup({
 })
 ```
 
-Each entry requires a `title`. The `prompt` field is optional; when omitted, aiwaku sends the current selection without a prefix. Entries with `buffer = true` send the entire current buffer instead of the visual selection.
+Each entry requires a `title`. The `prompt` field is optional; when omitted, aiwaku sends the current selection without a prefix. Entries with `buffer = true` send the entire current buffer instead of the visual selection. Entries with `diagnostic = true` send cursor-line diagnostics and are only shown in the menu when the cursor line has a diagnostic. Entries with `file_diagnostic = true` send all buffer diagnostics and are only shown when the buffer has at least one diagnostic.
 
 > **Note:** null-ls (or its community fork [none-ls](https://github.com/nvimtools/none-ls.nvim)) must be installed and have an active client attached to the buffer for code actions to appear.
 
@@ -300,6 +311,8 @@ All functions are available on the `require("aiwaku")` table after calling `setu
 | `clear_context()` | Kill the current session and start a fresh one |
 | `send_selection(prompt?)` | Send the current visual selection to the AI (optional prompt prefix) |
 | `send_buffer(prompt?)` | Send the entire current buffer to the AI (optional prompt prefix) |
+| `send_diagnostic(prompt?)` | Send cursor-line diagnostics to the AI; falls back to all buffer diagnostics when none exist on the line |
+| `send_file_diagnostics(prompt?)` | Send all diagnostics for the current buffer to the AI |
 | `open_cword_in_tab()` | Open the file path under cursor (from AI output) in a new tab |
 | `session_name()` | Return the display name of the active session, or `nil` when none is active |
 
@@ -336,6 +349,24 @@ require("aiwaku").send_selection("Refactor to be more idiomatic:")
 ```
 
 
+
+### Sending diagnostics
+
+`send_diagnostic` sends the LSP/diagnostic messages on the current cursor line. When no diagnostic exists on the cursor line it falls back to all diagnostics in the buffer:
+
+```lua
+require("aiwaku").send_diagnostic()
+require("aiwaku").send_diagnostic("Fix the following error:")
+```
+
+`send_file_diagnostics` always sends every diagnostic in the current buffer:
+
+```lua
+require("aiwaku").send_file_diagnostics()
+require("aiwaku").send_file_diagnostics("Please fix all these issues:")
+```
+
+Each diagnostic is formatted as `[SEVERITY] [source] file:line: message`. Both functions notify with a warning when no diagnostics are found.
 
 ### Sending the whole buffer
 

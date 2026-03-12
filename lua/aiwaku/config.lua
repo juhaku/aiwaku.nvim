@@ -81,6 +81,12 @@ M.defaults = {
 				end,
 				description = "Aiwaku: send buffer",
 			},
+			["<leader>ad"] = {
+				command = function()
+					require("aiwaku").send_diagnostic()
+				end,
+				description = "Aiwaku: send diagnostic",
+			},
 			["<leader>at"] = {
 				command = function()
 					require("aiwaku").select_tool()
@@ -101,6 +107,9 @@ M.defaults = {
 		{ title = "AI: refactor this code", prompt = "refactor this code:" },
 		{ title = "AI: send this file", buffer = true },
 		{ title = "AI: explain this file", prompt = "explain this file:", buffer = true },
+		{ title = "AI: send diagnostics", diagnostic = true },
+		{ title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
+		{ title = "AI: send file diagnostics", file_diagnostic = true },
 	},
 	terminal_keymaps = {
 		["<C-w>h"] = { command = "<C-\\><C-n><C-w>h", description = "Focus left" },

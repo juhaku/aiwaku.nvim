@@ -14,6 +14,8 @@ M.clear_context = session.clear_context
 M.rename_session = session.rename_session
 M.send_selection = sender.send_selection
 M.send_buffer = sender.send_buffer
+M.send_diagnostic = sender.send_diagnostic
+M.send_file_diagnostics = sender.send_file_diagnostics
 
 ---Return the display name of the current active AI session, suitable for use
 ---in a statusline or winbar. Returns nil when no session is active or before
