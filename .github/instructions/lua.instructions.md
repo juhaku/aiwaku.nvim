@@ -59,3 +59,4 @@ Annotations drive type-checking and IDE support. Keep them accurate.
 - Prefer `vim.api.nvim_chan_send` over `vim.fn.chansend` for terminal channel I/O.
 - Flag any O(n²) or repeated work (e.g., scanning the full session list inside another loop) and suggest lifting it outside the loop or using a lookup table.
 - Validate suspected performance issues with profiling or a concrete benchmark before assuming they matter at plugin scale.
+- Review changes against async leaks, performance issues, and design issues.

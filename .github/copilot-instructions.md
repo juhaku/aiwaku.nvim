@@ -45,7 +45,7 @@ Runtime requirements still matter for code changes:
 # Copilot Working Guidelines
 
 ## Lua Code Changes
-- Follow the Lua Code Review Standards in `.github/instructions/lua.instructions.md`
+- Follow the Lua Generate, Code Review Standards in `.github/instructions/lua.instructions.md`
 
 ## Git Workflow
 - DO not automatically push changes.

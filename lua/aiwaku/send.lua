@@ -4,6 +4,40 @@ local state = require("aiwaku.state")
 local session = require("aiwaku.session")
 local window = require("aiwaku.window")
 
+local SEVERITY_NAMES = { "ERROR", "WARN", "INFO", "HINT" }
+
+---Format a single diagnostic entry as a human-readable line.
+---@param d vim.Diagnostic
+---@param file string Display name of the buffer file
+---@return string
+local function format_diagnostic(d, file)
+	local sev = SEVERITY_NAMES[d.severity] or "UNKNOWN"
+	local src = d.source and ("[" .. d.source .. "] ") or ""
+	return string.format("[%s] %s%s:%d: %s", sev, src, file, d.lnum + 1, d.message)
+end
+
+---@param bufnr integer
+---@param line_number? integer When set, gather diagnostics for the line first and fall back to the full buffer
+---@return string?
+local function build_diagnostics_text(bufnr, line_number)
+	local diagnostics = line_number and vim.diagnostic.get(bufnr, { lnum = line_number }) or vim.diagnostic.get(bufnr)
+	if line_number and #diagnostics == 0 then
+		diagnostics = vim.diagnostic.get(bufnr)
+	end
+	if #diagnostics == 0 then
+		return nil
+	end
+
+	local name = vim.api.nvim_buf_get_name(bufnr)
+	local file = (name ~= "" and name) or "<unnamed>"
+	local parts = {}
+	for _, d in ipairs(diagnostics) do
+		table.insert(parts, format_diagnostic(d, file))
+	end
+
+	return table.concat(parts, "\n") .. "\n"
+end
+
 ---Get the visually selected text from the previous visual selection.
 ---Must be called right after leaving visual mode (e.g. from a mapping).
 ---@return string text The selected text with a trailing newline appended
@@ -110,6 +144,52 @@ M.send_buffer = function(prompt)
 	end
 
 	send_to_session(content)
+end
+
+---Send the diagnostic under the cursor to the active sidebar terminal.
+---Falls back to all buffer diagnostics when no diagnostic exists on the current line.
+---@param prompt? string Optional prompt prefix prepended before the diagnostics
+M.send_diagnostic = function(prompt)
+	if not state.config then
+		vim.notify("[aiwaku] Call setup() before send_diagnostic()", vim.log.levels.ERROR)
+		return
+	end
+
+	local bufnr = vim.api.nvim_get_current_buf()
+	local row = vim.api.nvim_win_get_cursor(0)[1] - 1
+	local text = build_diagnostics_text(bufnr, row)
+	if not text then
+		vim.notify("[aiwaku] No diagnostics found", vim.log.levels.WARN)
+		return
+	end
+
+	if prompt then
+		text = prompt .. "\n" .. text
+	end
+
+	send_to_session(text)
+end
+
+---Send all diagnostics for the current buffer to the active sidebar terminal.
+---@param prompt? string Optional prompt prefix prepended before the diagnostics
+M.send_file_diagnostics = function(prompt)
+	if not state.config then
+		vim.notify("[aiwaku] Call setup() before send_file_diagnostics()", vim.log.levels.ERROR)
+		return
+	end
+
+	local bufnr = vim.api.nvim_get_current_buf()
+	local text = build_diagnostics_text(bufnr)
+	if not text then
+		vim.notify("[aiwaku] No diagnostics in buffer", vim.log.levels.WARN)
+		return
+	end
+
+	if prompt then
+		text = prompt .. "\n" .. text
+	end
+
+	send_to_session(text)
 end
 
 return M

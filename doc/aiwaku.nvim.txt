@@ -170,6 +170,10 @@ keymaps ~
           command = function() require("aiwaku").send_buffer() end,
           description = "Aiwaku: send buffer",
         },
+        ["<leader>ad"] = {
+          command = function() require("aiwaku").send_diagnostic() end,
+          description = "Aiwaku: send diagnostic",
+        },
         ["<leader>at"] = {
           command = function() require("aiwaku").select_tool() end,
           description = "Aiwaku: select CLI tool",
@@ -191,7 +195,11 @@ lsp_code_actions ~
   List of LSP code actions exposed through null-ls/none-ls. Each entry requires
   a `title` string and may include an optional `prompt` string. Entries with
   `buffer = true` dispatch to |aiwaku.send_buffer()| instead of
-  |aiwaku.send_selection()|.
+  |aiwaku.send_selection()|. Entries with `diagnostic = true` dispatch to
+  |aiwaku.send_diagnostic()| and are only shown when the cursor line has a
+  diagnostic. Entries with `file_diagnostic = true` dispatch to
+  |aiwaku.send_file_diagnostics()| and are only shown when the buffer has at
+  least one diagnostic.
 
   Default: >lua
 
@@ -201,6 +209,9 @@ lsp_code_actions ~
       { title = "AI: refactor this code", prompt = "refactor this code:" },
       { title = "AI: send this file", buffer = true },
       { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
+      { title = "AI: send diagnostics", diagnostic = true },
+      { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:\n", diagnostic = true },
+      { title = "AI: send file diagnostics", file_diagnostic = true },
     },
 <
 
@@ -265,6 +276,7 @@ Default normal mode keymaps:~
   `<leader>as`    Select from existing sessions (picker)
   `<leader>ar`    Rename the current session
   `<leader>ab`    Send the current buffer to the AI
+  `<leader>ad`    Send the diagnostic under cursor to the AI
   `<leader>at`    Select the active CLI tool (picker)
 
 Default visual mode keymaps:~
@@ -352,6 +364,22 @@ send_buffer([{prompt}])
   A context header (filename and filetype) is automatically prepended.
   If the sidebar is not visible it is opened automatically.
 
+                                                   *aiwaku.send_diagnostic()*
+send_diagnostic([{prompt}])
+  Send the LSP/diagnostic messages on the current cursor line to the active AI
+  session. When no diagnostic exists on the cursor line, falls back to all
+  diagnostics in the buffer. Issues a WARN notification when no diagnostics
+  are found. Each diagnostic is formatted as:
+  `[SEVERITY] [source] file:line: message`
+  If the sidebar is not visible it is opened automatically.
+
+                                                   *aiwaku.send_file_diagnostics()*
+send_file_diagnostics([{prompt}])
+  Send every diagnostic in the current buffer to the active AI session.
+  Uses the same `[SEVERITY] [source] file:line: message` format as
+  |aiwaku.send_diagnostic()|. Issues a WARN notification when no diagnostics
+  are found. If the sidebar is not visible it is opened automatically.
+
                                                    *aiwaku.open_cword_in_tab()*
 open_cword_in_tab()
   Open the file path under the cursor in a new tab. Strips optional :line
@@ -413,10 +441,17 @@ Default actions:~
   AI: refactor this code      Prepend "refactor this code:" before selection
   AI: send this file          Send full buffer without a prompt prefix
   AI: explain this file       Prepend "explain this file:" before buffer content
+  AI: send diagnostics        Send cursor-line diagnostics (cursor must have a diagnostic)
+  AI: fix diagnostics         Prepend fix prompt before cursor-line diagnostics (cursor must have a diagnostic)
+  AI: send file diagnostics   Send all buffer diagnostics (shown when buffer has any diagnostic)
 
-Actions without `buffer = true` call |aiwaku.send_selection()| internally.
-Actions with `buffer = true` call |aiwaku.send_buffer()| instead. The sidebar
-is opened automatically if it is not already visible.
+Actions without `buffer`, `diagnostic`, or `file_diagnostic` call
+|aiwaku.send_selection()| internally. Actions with `buffer = true` call
+|aiwaku.send_buffer()|. Actions with `diagnostic = true` call
+|aiwaku.send_diagnostic()| and are only shown when the cursor line has a
+diagnostic. Actions with `file_diagnostic = true` call
+|aiwaku.send_file_diagnostics()| and are only shown when the buffer has at
+least one diagnostic. The sidebar is opened automatically if not visible.
 
 Overriding the action list:~
 
@@ -435,6 +470,10 @@ Overriding the action list:~
   Each entry requires a `title`. `prompt` is optional; when omitted, aiwaku
   sends the current selection without a prefix. Entries with `buffer = true`
   dispatch to |aiwaku.send_buffer()| instead of |aiwaku.send_selection()|.
+  Entries with `diagnostic = true` dispatch to |aiwaku.send_diagnostic()|
+  and are only shown when the cursor line has a diagnostic. Entries with
+  `file_diagnostic = true` dispatch to |aiwaku.send_file_diagnostics()| and
+  are only shown when the buffer has at least one diagnostic.
 
 Actions are available for all filetypes when null-ls has an active client on
 the buffer.

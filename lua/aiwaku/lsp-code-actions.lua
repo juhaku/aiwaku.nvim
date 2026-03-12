@@ -13,7 +13,11 @@ local function make_code_action(action_def)
 	return {
 		title = action_def.title,
 		action = function()
-			if action_def.buffer then
+			if action_def.diagnostic then
+				require("aiwaku").send_diagnostic(action_def.prompt)
+			elseif action_def.file_diagnostic then
+				require("aiwaku").send_file_diagnostics(action_def.prompt)
+			elseif action_def.buffer then
 				require("aiwaku").send_buffer(action_def.prompt)
 			else
 				require("aiwaku").send_selection(action_def.prompt)
@@ -28,15 +32,22 @@ local M = {
 	method = null_ls.methods.CODE_ACTION,
 	filetypes = {},
 	generator = {
-		fn = function(_params)
+		fn = function(params)
 			if not state.config then
 				vim.notify("[aiwaku] Call setup() before using LSP code actions", vim.log.levels.ERROR)
 				return {}
 			end
+			local cursor_lnum = params.row - 1
+			local cursor_diags = vim.diagnostic.get(params.bufnr, { lnum = cursor_lnum })
+			local buffer_diags = vim.diagnostic.get(params.bufnr)
 			local actions = {}
 			for _, action_def in ipairs(state.config.lsp_code_actions) do
 				if type(action_def.title) ~= "string" or action_def.title == "" then
 					vim.notify("[aiwaku] Skipping LSP code action with missing or empty title", vim.log.levels.WARN)
+				elseif action_def.diagnostic and #cursor_diags == 0 then
+					-- skip: no diagnostic on cursor line
+				elseif action_def.file_diagnostic and #buffer_diags == 0 then
+					-- skip: no diagnostics in buffer
 				else
 					table.insert(actions, make_code_action(action_def))
 				end

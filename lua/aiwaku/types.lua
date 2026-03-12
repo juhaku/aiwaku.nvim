@@ -8,6 +8,8 @@
 ---@field title string              Title shown in the LSP code action menu
 ---@field prompt? string            Optional prompt prefix prepended before the content
 ---@field buffer? boolean           When true, sends the entire buffer instead of the visual selection
+---@field diagnostic? boolean       When true, sends cursor-line diagnostics; only shown when cursor line has a diagnostic
+---@field file_diagnostic? boolean  When true, sends all buffer diagnostics; only shown when buffer has diagnostics
 
 ---@class Aiwaku.CliTool
 ---@field name? string              Display name shown in pickers (resolved from cmd when absent)
