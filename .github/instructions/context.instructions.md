@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+applyTo: "**/*"
 ---
 
 # Context instructions (applies to all files)
