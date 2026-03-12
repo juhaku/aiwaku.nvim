@@ -31,7 +31,7 @@ Process (short)
    - Keep entries concise and code-linked.
 
 4. Update PR/commit
-   - Append the diff/fix and a short description to the PR body or commit message and reference the instruction entry.
+   - Append the diff/fix and a short description to the PR body or commit message, following the Git workflow conventions in `.github/copilot-instructions.md`, and reference the instruction entry.
 
 5. Automated agents
    - If an automated agent generates code, it must review the result and verify it with the repository's available validation steps before finalizing changes.
@@ -42,9 +42,6 @@ Process (short)
      - Verification: how the fix was validated (tests run, lint, manual check)
    - Append the diff/fix and the above details to the instruction entry and re-run the relevant review and validation steps; do not merge until verification passes.
    - Store a concise memory/fact for future automation when relevant.
-
-Commit/branch conventions
-- Use focused branch names (e.g. fix/context-...), conventional commits (docs/context, fix(context): ...), and include the Co-authored-by trailer when applicable.
 
 Verification
 - Re-run the relevant review and validation steps, confirm the generated code matches the reviewed code, and mark the instruction entry verified.
