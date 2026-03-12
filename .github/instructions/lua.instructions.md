@@ -2,15 +2,17 @@
 applyTo: "**/*.lua"
 ---
 
-# Lua Code Review Instructions
+# Lua Code Generate and Review Instructions
 
 ## Simplicity and minimal changes
 
 - Prefer the simplest correct solution. Flag over-engineering, unnecessary abstraction, or boilerplate.
 - Change only what the task requires. Do not refactor, rename, or reorganise unrelated code in the same commit.
+  - Refactor ONLY when it makes sense, e.g. there would be 2 functions sharing same logic. Follow the KISS principle.
 - Remove unnecessary intermediate variables when the expression is already readable.
 - Flatten nested conditionals: prefer multiple early returns over deeply nested `if` blocks.
 - An extra line of code is not automatically better than a dense one; judge by comprehension, not line count.
+- DO not do any breaking changes if anyway possible, if NOT always confirm first.
 
 ## No redundant guards
 

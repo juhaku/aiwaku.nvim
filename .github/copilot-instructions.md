@@ -46,16 +46,14 @@ Runtime requirements still matter for code changes:
 
 ## Lua Code Changes
 - Follow the Lua Code Review Standards in `.github/instructions/lua.instructions.md`
-- DO not do any breaking changes if anyway possible, if NOT always confirm first.
-- Always create feature branches with descriptive names.
-- Use conventional commit messages: feat(lua), fix(lua), docs(lua), etc.
 
 ## Git Workflow
 - DO not automatically push changes.
 - DO not automatically create a PR.
   - Always confirm first the commit message format and PR description.
+- Always create feature branches with descriptive names.
 - Branch naming: `feature/{description}` or `fix/{description}` or `chore/{description}` etc.
-- Commit message format: `type(scope): description`
+- Commit message format conventional: `type(scope): description`
 - One logical change per commit
 - Provide comprehensive PR descriptions: 
   - PR description should be prettily formatted.
