@@ -31,7 +31,7 @@ local function send_to_session(text)
 		return
 	end
 
-	if not window.win_visible(state.win_id) then
+	if not window.win_visible_in_current_tab(state.win_id) then
 		session.open_session(current_session)
 	end
 
