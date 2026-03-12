@@ -11,6 +11,16 @@ local words = require("aiwaku.words")
 local ui_select = async.wrap(vim.ui.select, 3)
 local ui_input = async.wrap(vim.ui.input, 2)
 
+local function close_sidebar_window()
+	if not window.win_visible(state.win_id) then
+		state.win_id = nil
+		return
+	end
+
+	vim.api.nvim_win_close(state.win_id, false)
+	state.win_id = nil
+end
+
 ---Generate a unique tmux session name for the aiwaku.
 ---Format: "ai-<tool>-<adjective>-<noun>-<hex>"
 ---@param tool_name string  Name of the active CLI tool
@@ -46,9 +56,10 @@ end
 ---terminal buffer joining the tmux session.
 ---@param session Aiwaku.Session
 function M.open_session(session)
-	if window.win_visible(state.win_id) then
+	if window.win_visible_in_current_tab(state.win_id) then
 		vim.api.nvim_set_current_win(state.win_id)
 	else
+		close_sidebar_window()
 		state.win_id = window.open_split()
 	end
 
@@ -82,11 +93,7 @@ function M.new_session(name)
 	local session_name = name or gen_session_name(tool.name)
 
 	-- Close the current window so a clean split is created
-	if window.win_visible(state.win_id) then
-		vim.api.nvim_win_close(state.win_id, false)
-		state.win_id = nil
-	end
-
+	close_sidebar_window()
 	state.win_id = window.open_split()
 
 	local new_buf = terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, resolve_cmd(tool)))
@@ -118,9 +125,8 @@ function M.toggle()
 		return
 	end
 
-	if window.win_visible(state.win_id) then
-		vim.api.nvim_win_close(state.win_id, false)
-		state.win_id = nil
+	if window.win_visible_in_current_tab(state.win_id) then
+		close_sidebar_window()
 		return
 	end
 
@@ -249,11 +255,7 @@ function M.clear_context()
 	state.current_session = nil
 
 	-- Close the sidebar window so new_session creates a clean split
-	if window.win_visible(state.win_id) then
-		vim.api.nvim_win_close(state.win_id, false)
-		state.win_id = nil
-	end
-
+	close_sidebar_window()
 	M.new_session()
 end
 
