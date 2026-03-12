@@ -276,7 +276,8 @@ Default normal mode keymaps:~
   `<leader>as`    Select from existing sessions (picker)
   `<leader>ar`    Rename the current session
   `<leader>ab`    Send the current buffer to the AI
-  `<leader>ad`    Send the diagnostic under cursor to the AI
+  `<leader>ad`    Send the diagnostic under cursor (or all buffer
+                  diagnostics if none on this line) to the AI
   `<leader>at`    Select the active CLI tool (picker)
 
 Default visual mode keymaps:~
