@@ -176,12 +176,16 @@ M.select_tool = async.void(function()
 			vim.notify("[aiwaku] Switched to tool: " .. tool.name, vim.log.levels.INFO)
 		end
 	end
-	_()
+	local ok, err = pcall(_)
 	state.busy = false
+	if not ok then
+		vim.notify("[aiwaku] Error in select_tool: " .. tostring(err), vim.log.levels.ERROR)
+	end
 end)
 
 ---Open a picker listing all active aiwaku tmux sessions.
 ---Selecting a session shows it in the sidebar.
+---@async
 M.select_session = async.void(function()
 	if state.busy then
 		return
@@ -213,8 +217,11 @@ M.select_session = async.void(function()
 			M.open_session(item)
 		end
 	end
-	_()
+	local ok, err = pcall(_)
 	state.busy = false
+	if not ok then
+		vim.notify("[aiwaku] Error in select_session: " .. tostring(err), vim.log.levels.ERROR)
+	end
 end)
 
 ---Clear the context of the current session by killing its tmux session and
@@ -264,6 +271,7 @@ end
 ---The "ai-" prefix is always enforced on the resulting session name so that
 ---sessions remain visible in the session picker.
 ---Updates the tmux session name and the internal state cache.
+---@async
 M.rename_session = async.void(function()
 	if state.busy then
 		return
@@ -304,8 +312,11 @@ M.rename_session = async.void(function()
 		state.session_bufnrs[old_name] = nil
 		state.current_session = new_name
 	end
-	_()
+	local ok, err = pcall(_)
 	state.busy = false
+	if not ok then
+		vim.notify("[aiwaku] Error in rename_session: " .. tostring(err), vim.log.levels.ERROR)
+	end
 end)
 
 return M
