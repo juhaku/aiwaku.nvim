@@ -153,7 +153,7 @@ require("aiwaku").setup({
     { title = "AI: send this file", buffer = true },
     { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
     { title = "AI: send diagnostics", diagnostic = true },
-    { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:\n", diagnostic = true },
+    { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
     { title = "AI: send file diagnostics", file_diagnostic = true },
   },
 

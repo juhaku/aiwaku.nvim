@@ -12,7 +12,7 @@ local SEVERITY_NAMES = { "ERROR", "WARN", "INFO", "HINT" }
 ---@return string
 local function format_diagnostic(d, file)
 	local sev = SEVERITY_NAMES[d.severity] or "UNKNOWN"
-	local src = "[" .. (d.source or "unknown") .. "] "
+	local src = d.source and ("[" .. d.source or "unknown" .. "] ") or ""
 	return string.format("[%s] %s%s:%d: %s", sev, src, file, d.lnum + 1, d.message)
 end
 
