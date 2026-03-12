@@ -22,8 +22,8 @@ Runtime requirements still matter for code changes:
 - `lua/aiwaku/tmux.lua` is the tmux boundary. Keep tmux shelling-out, shell escaping, and session parsing here rather than spreading tmux command construction across other modules.
 - `lua/aiwaku/window.lua` owns sidebar split creation and sets `winfixwidth` so the sidebar does not get squashed by other splits.
 - `lua/aiwaku/terminal.lua` owns terminal buffer creation and setup. It starts jobs with `vim.fn.jobstart(..., { term = true })`, stores the job id in `vim.b[bufnr].terminal_job_id`, marks buffers with `vim.b[bufnr].aiwaku = true`, applies `state.config.terminal_keymaps`, disables line numbers, and names buffers as `aiwaku://<cmd_basename>-<bufnr>`.
-- `lua/aiwaku/selection.lua` is the path from a visual selection to the running terminal job. It extracts the exact visual range, optionally prepends a prompt, ensures the target session exists, auto-opens the sidebar if needed, and sends text over the terminal channel.
-- `lua/aiwaku/lsp-code-actions.lua` is optional null-ls/none-ls integration layered on top of `selection.send_selection()`. It does a guarded `pcall(require, "null-ls")` at module load time and returns `{}` when null-ls is unavailable.
+- `lua/aiwaku/send.lua` is the path from visual selections or whole buffers to the running terminal job. It extracts the exact visual range or current buffer, optionally prepends a prompt, ensures the target session exists, auto-opens the sidebar if needed, and sends text over the terminal channel.
+- `lua/aiwaku/lsp-code-actions.lua` is optional null-ls/none-ls integration layered on top of the public `require("aiwaku").send_selection()` and `require("aiwaku").send_buffer()` API. It does a guarded `pcall(require, "null-ls")` at module load time and returns `{}` when null-ls is unavailable.
 
 ## Key conventions
 

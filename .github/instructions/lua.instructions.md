@@ -8,7 +8,7 @@ applyTo: "**/*.lua"
 
 - Prefer the simplest correct solution. Flag over-engineering, unnecessary abstraction, or boilerplate.
 - Change only what the task requires. Do not refactor, rename, or reorganise unrelated code in the same commit.
-  - Refactor ONLY when it makes sense, e.g. there would be 2 functions sharing same logic. Follow the KISS principle.
+  - Exception: refactor only when it removes genuine duplication or directly supports the requested change. Follow the KISS principle.
 - Remove unnecessary intermediate variables when the expression is already readable.
 - Flatten nested conditionals: prefer multiple early returns over deeply nested `if` blocks.
 - An extra line of code is not automatically better than a dense one; judge by comprehension, not line count.
@@ -55,7 +55,7 @@ Annotations drive type-checking and IDE support. Keep them accurate.
 - Shell-outs (`vim.fn.systemlist`, `vim.system`, any `vim.fn.*` that spawns a process) are expensive. Never call them inside loops or on every editor event (e.g., `CursorMoved`, `TextChanged`).
 - Read buffer content in one call: `vim.api.nvim_buf_get_lines(buf, start, end, strict)`. Do not call it once per line.
 - `vim.api.nvim_buf_is_valid` and `vim.api.nvim_win_is_valid` are cheap; use them before operations that require a live handle, but do not repeat them in the same scope.
-- Cache repeated table field lookups in a local variable inside loops to avoid repeated hash traversals.
+- Cache repeated table field lookups in a local variable inside loops to avoid repeated hash traversals
 - Prefer `vim.api.nvim_chan_send` over `vim.fn.chansend` for terminal channel I/O.
 - Flag any O(n²) or repeated work (e.g., scanning the full session list inside another loop) and suggest lifting it outside the loop or using a lookup table.
 - Validate suspected performance issues with profiling or a concrete benchmark before assuming they matter at plugin scale.
