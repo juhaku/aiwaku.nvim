@@ -218,7 +218,7 @@ require("aiwaku").setup({
 | `<leader>as` | Select from existing sessions |
 | `<leader>ar` | Rename the current session |
 | `<leader>ab` | Send the current buffer to the AI |
-| `<leader>ad` | Send the diagnostic under cursor to the AI |
+| `<leader>ad` | Send the diagnostic under cursor (or all buffer diagnostics if none under cursor) to the AI |
 | `<leader>at` | Select the active CLI tool |
 
 ### Visual mode
