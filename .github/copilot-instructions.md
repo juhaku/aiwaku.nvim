@@ -55,7 +55,7 @@ Runtime requirements still matter for code changes:
 - Branch naming: `feature/{description}` or `fix/{description}` or `chore/{description}` etc.
 - Commit message format conventional: `type(scope): description`
 - One logical change per commit
-- Provide comprehensive PR descriptions: 
+- Provide comprehensive commit message and PR descriptions: 
   - PR description should be prettily formatted.
   - The description should answer what is changed and why it's changed.
   - Use subtitles to separate chapters in longer message.
