@@ -21,6 +21,21 @@ local function close_sidebar_window()
 	state.win_id = nil
 end
 
+---Set the winbar of the sidebar window to show the active tool and session name.
+---No-op when win_id is nil or invalid, or when no session is active.
+---@param win_id integer|nil
+local function update_winbar(win_id)
+	if not window.win_visible(win_id) or not state.current_session then
+		return
+	end
+
+	local tool = state.current_tool or (state.config and state.config.cmd and state.config.cmd[1])
+	local tool_name = (tool and tool.name) or "aiwaku"
+	local session_suffix = state.current_session:match("^ai%-(.+)$") or state.current_session
+
+	vim.wo[win_id].winbar = "%#Title# " .. tool_name .. " • " .. session_suffix .. " %*"
+end
+
 ---Generate a unique tmux session name for the aiwaku.
 ---Format: "ai-<tool>-<adjective>-<noun>-<hex>"
 ---@param tool_name string  Name of the active CLI tool
@@ -76,6 +91,7 @@ function M.open_session(session)
 	end
 
 	state.current_session = session.name
+	update_winbar(state.win_id)
 	vim.cmd("startinsert")
 end
 
@@ -103,6 +119,7 @@ function M.new_session(name)
 	terminal.setup_terminal_buf(new_buf)
 	state.session_bufnrs[session_name] = new_buf
 	state.current_session = session_name
+	update_winbar(state.win_id)
 
 	vim.cmd("startinsert")
 
@@ -303,6 +320,7 @@ M.rename_session = async.void(function()
 		state.session_bufnrs[new_name] = state.session_bufnrs[old_name]
 		state.session_bufnrs[old_name] = nil
 		state.current_session = new_name
+		update_winbar(state.win_id)
 	end
 	_()
 	state.busy = false
