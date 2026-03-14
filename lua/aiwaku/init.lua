@@ -93,6 +93,14 @@ function M.setup(opts)
 			end
 		end,
 	})
+
+	-- Autocmd: restore the last-used AI session when a Neovim session is loaded
+	vim.api.nvim_create_autocmd("SessionLoadPost", {
+		group = vim.api.nvim_create_augroup("AiwakuSessionRestore", {}),
+		callback = function()
+			session.restore_session()
+		end,
+	})
 end
 
 return M

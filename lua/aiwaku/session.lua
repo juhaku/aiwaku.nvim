@@ -322,4 +322,68 @@ M.rename_session = async.void(function()
 	end
 end)
 
+---Restore the last-used AI session after a Neovim session is loaded.
+---Scans all buffers for names matching "aiwaku://ai-" (written by set_buf_name when a
+---session was last opened). If found, verifies the tmux session still exists and:
+---  - If the ghost buffer was visible in a window: reconnects the sidebar in that window
+---    without stealing focus from the user's editing window.
+---  - If the ghost buffer was not in any window: only sets state.current_session so that
+---    the next toggle() reconnects naturally without opening a new split.
+---  - If the tmux session no longer exists: warns the user and cleans up the ghost buffer.
+function M.restore_session()
+	if not state.config or not state.config.restore_on_session_load then
+		return
+	end
+
+	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+		local name = vim.api.nvim_buf_get_name(bufnr)
+		local session_name = name:match("^aiwaku://(ai%-[^/]+)$")
+		if session_name then
+			local session = M.find_session(session_name)
+			if not session then
+				vim.notify(
+					"[aiwaku] Previous session '" .. session_name .. "' no longer exists.",
+					vim.log.levels.WARN
+				)
+				vim.api.nvim_buf_delete(bufnr, { force = true })
+			else
+				-- Find the window currently showing this ghost buffer (may be nil).
+				local ghost_win = nil
+				for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+					if vim.api.nvim_win_get_buf(win) == bufnr then
+						ghost_win = win
+						break
+					end
+				end
+
+				state.current_session = session_name
+
+				if ghost_win then
+					-- Restore the sidebar into the existing window without stealing focus.
+					local prev_win = vim.api.nvim_get_current_win()
+					state.win_id = ghost_win
+					M.open_session(session)
+					-- Delete the ghost buffer now that it has been replaced in the window.
+					if vim.api.nvim_buf_is_valid(bufnr) then
+						vim.api.nvim_buf_delete(bufnr, { force = true })
+					end
+					-- Return focus to the user's editing window after open_session's startinsert.
+					-- Skip when the sidebar itself was focused (keep terminal insert mode active).
+					vim.schedule(function()
+						if prev_win ~= ghost_win and vim.api.nvim_win_is_valid(prev_win) then
+							vim.api.nvim_set_current_win(prev_win)
+							vim.cmd("stopinsert")
+						end
+					end)
+				else
+					-- Sidebar was hidden; clean up the ghost buffer.
+					vim.api.nvim_buf_delete(bufnr, { force = true })
+				end
+
+				return
+			end
+		end
+	end
+end
+
 return M
