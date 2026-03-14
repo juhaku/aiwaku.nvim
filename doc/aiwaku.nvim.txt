@@ -139,6 +139,38 @@ auto_submit ~
     })
 <
 
+                                           *aiwaku-config-restore_on_session_load*
+restore_on_session_load ~
+  Type: `boolean`
+  Default: `true`
+
+  When `true`, aiwaku automatically reconnects to the last-used AI session
+  when a Neovim session is loaded (e.g. via `:source Session.vim` or
+  `nvim -S Session.vim`).
+
+  Neovim's built-in session saving (`:mksession`) preserves terminal buffer
+  names. aiwaku names its terminal buffers after the active tmux session, so
+  on restore it can recover the session name, verify the tmux session still
+  exists, and reconnect the sidebar — all without user interaction.
+
+  - If the sidebar was visible when the session was saved, the same window
+    is reused and a live terminal is opened. Focus stays in the user's
+    editing window.
+  - If the sidebar was hidden, only `state.current_session` is restored so
+    that the next `toggle()` reconnects to the previous session naturally.
+  - If the tmux session no longer exists, a warning is shown.
+
+  Multiple Neovim instances are safe: each instance restores from its own
+  session file, which contains its own buffer names, so they never pick up
+  each other's sessions.
+
+  Disable if you prefer to always start with a fresh session: >lua
+
+    require("aiwaku").setup({
+      restore_on_session_load = false,
+    })
+<
+
                                                         *aiwaku-config-keymaps*
 keymaps ~
   Type: `table`

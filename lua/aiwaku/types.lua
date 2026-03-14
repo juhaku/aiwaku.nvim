@@ -20,6 +20,7 @@
 ---@field width integer             Sidebar column width (default: 80)
 ---@field position "right"|"left"   Which side to open (default: "right")
 ---@field auto_submit boolean       When true, sends Enter after content to trigger immediate AI processing (default: false)
+---@field restore_on_session_load boolean  When true, auto-restores the last-used AI session when a Neovim session is loaded (default: true)
 ---@field keymaps {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap} } Map of default action keymaps
 ---@field lsp_code_actions Aiwaku.LspCodeAction[] Default LSP code actions exposed through null-ls/none-ls
 ---@field terminal_keymaps {[string]: Aiwaku.Keymap} Map of terminal buffer keymaps

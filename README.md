@@ -103,6 +103,10 @@ require("aiwaku").setup({
   -- terminal, triggering immediate processing without manual Enter press.
   auto_submit = false,
 
+  -- When true, automatically restores the last-used AI session when a Neovim
+  -- session is loaded via :source Session.vim or nvim -S.
+  restore_on_session_load = true,
+
   -- Normal/visual mode keymaps.
   -- Key: mode list, Value: map of lhs -> { command, description }
   keymaps = {
@@ -203,6 +207,7 @@ require("aiwaku").setup({
 | `width` | `integer` | `80` | Sidebar panel width in columns |
 | `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
 | `auto_submit` | `boolean` | `false` | When true, sends Enter after content to trigger immediate AI processing |
+| `restore_on_session_load` | `boolean` | `true` | When true, auto-restores the last-used AI session when a Neovim session is loaded |
 | `keymaps` | `table` | see above | Normal/visual mode keymaps |
 | `lsp_code_actions` | `{ title = string, prompt? = string, buffer? = boolean, diagnostic? = boolean, file_diagnostic? = boolean }[]` | see above | LSP code actions exposed through null-ls/none-ls |
 | `terminal_keymaps` | `table` | see above | Keymaps active inside the terminal buffer |

@@ -49,6 +49,7 @@ M.defaults = {
 	width = 80,
 	position = "right",
 	auto_submit = false,
+	restore_on_session_load = true,
 	keymaps = {
 		[{ "n" }] = {
 			["<leader>ai"] = {
