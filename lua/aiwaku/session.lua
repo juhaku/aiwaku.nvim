@@ -349,9 +349,14 @@ function M.restore_session()
 			else
 				-- Find the window currently showing this ghost buffer (may be nil).
 				local ghost_win = nil
-				for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-					if vim.api.nvim_win_get_buf(win) == bufnr then
-						ghost_win = win
+				for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
+					for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tabpage)) do
+						if vim.api.nvim_win_get_buf(win) == bufnr then
+							ghost_win = win
+							break
+						end
+					end
+					if ghost_win then
 						break
 					end
 				end
