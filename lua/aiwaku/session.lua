@@ -72,6 +72,7 @@ function M.open_session(session)
 			return
 		end
 		terminal.setup_terminal_buf(new_buf)
+		terminal.set_buf_name(new_buf, session.name)
 		state.session_bufnrs[session.name] = new_buf
 	end
 
@@ -101,6 +102,7 @@ function M.new_session(name)
 		return nil
 	end
 	terminal.setup_terminal_buf(new_buf)
+	terminal.set_buf_name(new_buf, session_name)
 	state.session_bufnrs[session_name] = new_buf
 	state.current_session = session_name
 
@@ -311,6 +313,7 @@ M.rename_session = async.void(function()
 		state.session_bufnrs[new_name] = state.session_bufnrs[old_name]
 		state.session_bufnrs[old_name] = nil
 		state.current_session = new_name
+		terminal.set_buf_name(state.session_bufnrs[new_name], new_name)
 	end
 	local ok, err = pcall(_)
 	state.busy = false

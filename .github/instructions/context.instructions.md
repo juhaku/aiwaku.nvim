@@ -50,3 +50,29 @@ Tone
 - Short, example-driven, and anchored to file paths. Do not open issues by default — record and verify first.
 
 These instructions exist to reduce repeated review failures by ensuring diffs, fixes, and explanations are preserved and discoverable.
+
+---
+
+## Recorded lessons
+
+### Redundant guard in callee when all call sites guarantee validity
+
+- **What:** Added a defensive `buf_alive` + `session_name` guard inside `terminal.set_buf_name` even though every call site already guarantees a live buffer and a non-nil name.
+- **Where:** `lua/aiwaku/terminal.lua` — `set_buf_name`; `feature/sidebar-bufname-session` branch.
+- **Diff/fix:**
+  ```lua
+  -- Before (redundant guard)
+  function M.set_buf_name(bufnr, session_name)
+    if not M.buf_alive(bufnr) or not session_name then
+      return
+    end
+    vim.api.nvim_buf_set_name(bufnr, "aiwaku://" .. session_name)
+  end
+
+  -- After (trust call-site invariants)
+  function M.set_buf_name(bufnr, session_name)
+    vim.api.nvim_buf_set_name(bufnr, "aiwaku://" .. session_name)
+  end
+  ```
+- **Why:** `new_session` and `open_session` both guard with `if new_buf == 0 then return end` before calling `set_buf_name`. `rename_session` reads `state.session_bufnrs[new_name]` which was just migrated from a live-session buffer. No call path reaches `set_buf_name` with an invalid buffer or nil name, so the guard is dead code that obscures the real invariants.
+- **Verification:** Trace all call sites of `set_buf_name` and confirm each has an earlier validity guarantee before the call.

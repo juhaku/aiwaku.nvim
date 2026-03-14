@@ -67,4 +67,12 @@ function M.open_in_new_terminal_buf(cmd)
 	return new_buf
 end
 
+---Set the buffer name to reflect the tmux session name.
+---This allows statuslines and window titles to show the active session.
+---@param bufnr integer
+---@param session_name string
+function M.set_buf_name(bufnr, session_name)
+	vim.api.nvim_buf_set_name(bufnr, "aiwaku://" .. session_name)
+end
+
 return M
