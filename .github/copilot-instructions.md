@@ -48,14 +48,14 @@ Runtime requirements still matter for code changes:
 ## Code Changes
 
 - Follow the Lua code generation and review standards in `.github/instructions/lua.instructions.md`
-- Make sure to abide by the recorded lessons before implementing `.github/instructions/context.instructions.md`
+- Make sure to follow the recorded lessons before implementing `.github/instructions/context.instructions.md`
 - Make sure to consider all outcomes, expected, and unexpected behavior before implementation.
 
 ## Code Review
 
 - Follow the Lua code generation and review standards in `.github/instructions/lua.instructions.md`
 - Make sure to consider all outcomes, expected, and unexpected behavior before implementation.
-- Make sure to abide by, and update if needed, the recorded lessons based on your findings before implementing `.github/instructions/context.instructions.md`
+- Make sure to follow, and update if needed, the recorded lessons based on your findings before implementing `.github/instructions/context.instructions.md`
 
 ## Git Workflow
 

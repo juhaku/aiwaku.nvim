@@ -334,11 +334,16 @@ function M.restore_session()
 		return
 	end
 
+	local sessions = vim.iter(tmux.list_sessions()):fold({}, function(acc, item)
+		acc[item.name] = item
+		return acc
+	end)
+
 	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
 		local name = vim.api.nvim_buf_get_name(bufnr)
 		local session_name = name:match("^aiwaku://(ai%-[^/]+)$")
 		if session_name then
-			local session = M.find_session(session_name)
+			local session = sessions[session_name]
 			if not session then
 				vim.notify("[aiwaku] Previous session '" .. session_name .. "' no longer exists.", vim.log.levels.WARN)
 				vim.api.nvim_buf_delete(bufnr, { force = true })
