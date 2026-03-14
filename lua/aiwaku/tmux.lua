@@ -73,7 +73,14 @@ function M.new_session_cmd(name, cmd)
 	if socket and socket ~= "" then
 		env_flag = " -e NVIM=" .. vim.fn.shellescape(socket)
 	end
-	return "tmux new-session -s " .. vim.fn.shellescape(name) .. env_flag .. " " .. vim.fn.shellescape(cmd)
+	return "tmux new-session -s "
+		.. vim.fn.shellescape(name)
+		.. env_flag
+		.. " "
+		.. vim.fn.shellescape(cmd)
+		.. " \\; set-option -t "
+		.. vim.fn.shellescape(name)
+		.. " status off"
 end
 
 ---Return the shell command for joining an existing tmux session.
