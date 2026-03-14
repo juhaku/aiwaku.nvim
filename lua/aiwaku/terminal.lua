@@ -28,21 +28,12 @@ function M.setup_terminal_buf(bufnr)
 	end)
 end
 
----Extract the name of the current CLI tool for use in buffer names.
----Uses the currently selected tool, falling back to the first configured tool.
----@return string name e.g. "copilot", "opencode"
-local function cmd_name()
-	local tool = state.current_tool
-		or (state.config and state.config.cmd and state.config.cmd[1])
-	return tool and tool.name or "terminal"
-end
-
-
 ---Open a new terminal buffer running the given shell command.
 ---Used internally by session.lua to start new-session or join an existing one.
 ---@param cmd string Full shell command to run inside the terminal
+---@param name string Name to use for terminal buffer
 ---@return integer bufnr New terminal buffer number, or 0 on failure.
-function M.open_in_new_terminal_buf(cmd)
+function M.open_in_new_terminal_buf(cmd, name)
 	local new_buf = vim.api.nvim_create_buf(false, false)
 	vim.api.nvim_win_set_buf(state.win_id, new_buf)
 
@@ -63,7 +54,8 @@ function M.open_in_new_terminal_buf(cmd)
 		return 0
 	end
 
-	vim.api.nvim_buf_set_name(new_buf, "aiwaku://" .. cmd_name() .. "-" .. new_buf)
+	M.set_buf_name(new_buf, name)
+
 	return new_buf
 end
 

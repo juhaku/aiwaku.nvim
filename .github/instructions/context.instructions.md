@@ -5,15 +5,19 @@ applyTo: "**/*"
 # Context instructions (applies to all files)
 
 Purpose
+
 - Quickly capture short, actionable lessons when code generation and review misalign.
 
 Scope
+
 - Applies to all contributors and automated agents.
 
 When to apply
+
 - Whenever review findings, validation failures, or reviewer feedback differ from generated code, or a recurring mistake appears.
 
 Process (short)
+
 1. Detect
    - One-line symptom: where (file/PR) and why it's a problem.
 
@@ -44,9 +48,11 @@ Process (short)
    - Store a concise memory/fact for future automation when relevant.
 
 Verification
+
 - Re-run the relevant review and validation steps, confirm the generated code matches the reviewed code, and mark the instruction entry verified.
 
 Tone
+
 - Short, example-driven, and anchored to file paths. Do not open issues by default — record and verify first.
 
 These instructions exist to reduce repeated review failures by ensuring diffs, fixes, and explanations are preserved and discoverable.
@@ -60,6 +66,7 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
 - **What:** Added a defensive `buf_alive` + `session_name` guard inside `terminal.set_buf_name` even though every call site already guarantees a live buffer and a non-nil name.
 - **Where:** `lua/aiwaku/terminal.lua` — `set_buf_name`; `feature/sidebar-bufname-session` branch.
 - **Diff/fix:**
+
   ```lua
   -- Before (redundant guard)
   function M.set_buf_name(bufnr, session_name)
@@ -74,6 +81,7 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
     vim.api.nvim_buf_set_name(bufnr, "aiwaku://" .. session_name)
   end
   ```
+
 - **Why:** `new_session` and `open_session` both guard with `if new_buf == 0 then return end` before calling `set_buf_name`. `rename_session` reads `state.session_bufnrs[new_name]` which was just migrated from a live-session buffer. No call path reaches `set_buf_name` with an invalid buffer or nil name, so the guard is dead code that obscures the real invariants.
 - **Verification:** Trace all call sites of `set_buf_name` and confirm each has an earlier validity guarantee before the call.
 
@@ -88,6 +96,7 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
   lua/aiwaku/session.lua:389: unexpected symbol near '::'
   ```
 - **Diff/fix:** Remove `goto`/label entirely; restructure the loop body with nested `if`/`else` instead:
+
   ```lua
   -- Before (invalid in LuaJIT)
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
@@ -107,6 +116,7 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
     end
   end
   ```
+
 - **Why:** LuaJIT (Lua 5.1 + `goto` extension) does not allow a label as the final statement in a block. The system `luac` tool also rejects it but for a different reason (no `goto` support at all in Lua 5.1). Always validate with `nvim --headless` rather than `luac`.
 - **Verification:** `nvim --headless -c 'lua local ok, err = loadfile("lua/aiwaku/session.lua"); print(ok and "OK" or err)' -c 'qa!'`
 
@@ -133,6 +143,7 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
 - **What:** `restore_session` unconditionally called `vim.cmd("stopinsert")` in `vim.schedule`, which exited terminal insert mode even when the user had the sidebar focused when they saved the session.
 - **Where:** `lua/aiwaku/session.lua` — `restore_session()`, scheduled focus-restore callback; session-restore feature.
 - **Diff/fix:**
+
   ```lua
   -- Before (always exits insert mode)
   vim.schedule(function()
@@ -150,5 +161,6 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
     end
   end)
   ```
+
 - **Why:** `prev_win` is captured before `open_session` runs. If the sidebar was focused, `prev_win == ghost_win`. Returning to it and calling `stopinsert` would wrongly drop the user out of terminal insert mode.
 - **Verification:** With sidebar focused, save + restore session; terminal should remain in insert mode.

@@ -9,6 +9,7 @@ This repository does not define dedicated build, test, or lint commands today. T
 - There is currently no dedicated lint command.
 
 Runtime requirements still matter for code changes:
+
 - tmux >= 3.0 is required for session persistence and management.
 - Neovim >= 0.10 is required by the documented plugin API and runtime usage.
 
@@ -44,10 +45,20 @@ Runtime requirements still matter for code changes:
 
 # Copilot Working Guidelines
 
-## Lua Code Changes
+## Code Changes
+
 - Follow the Lua code generation and review standards in `.github/instructions/lua.instructions.md`
+- Make sure to abide recorded lessons before implementing `.github/instructions/context.instructions.md`
+- Make sure to consider all outcomes, expected, and unexpected behavior before implementation.
+
+## Code Review
+
+- Follow the Lua code generation and review standards in `.github/instructions/lua.instructions.md`
+- Make sure to consider all outcomes, expected, and unexpected behavior before implementation.
+- Make sure to abide AND UPDATE if needed according to findings recorded lessons before implementing `.github/instructions/context.instructions.md`
 
 ## Git Workflow
+
 - DO not automatically push changes.
 - DO not automatically create a PR.
   - Always confirm first the commit message format and PR description.
@@ -55,7 +66,7 @@ Runtime requirements still matter for code changes:
 - Branch naming: `feature/{description}` or `fix/{description}` or `chore/{description}` etc.
 - Commit message format conventional: `type(scope): description`
 - One logical change per commit
-- Provide comprehensive commit message and PR descriptions: 
+- Provide comprehensive commit message and PR descriptions:
   - PR description should be prettily formatted.
   - The description should answer what is changed and why it's changed.
   - Use subtitles to separate chapters in longer message.
@@ -63,5 +74,6 @@ Runtime requirements still matter for code changes:
   - Use code samples when applicable to demonstrate new functionality.
 
 ## Tools Available
+
 - GitHub MCP Server for PR creation and GitHub operations
 - Git commands for local operations
