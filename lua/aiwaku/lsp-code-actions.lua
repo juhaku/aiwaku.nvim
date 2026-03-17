@@ -37,6 +37,10 @@ local M = {
 				vim.notify("[aiwaku] Call setup() before using LSP code actions", vim.log.levels.ERROR)
 				return {}
 			end
+			local lsp_range = params.lsp_params and params.lsp_params.range
+			local has_selection = lsp_range ~= nil
+				and (lsp_range["start"].line ~= lsp_range["end"].line
+					or lsp_range["start"].character ~= lsp_range["end"].character)
 			local cursor_lnum = params.row - 1
 			local cursor_diags = vim.diagnostic.get(params.bufnr, { lnum = cursor_lnum })
 			local buffer_diags = vim.diagnostic.get(params.bufnr)
@@ -48,6 +52,8 @@ local M = {
 					-- skip: no diagnostic on cursor line
 				elseif action_def.file_diagnostic and #buffer_diags == 0 then
 					-- skip: no diagnostics in buffer
+				elseif not action_def.buffer and not action_def.diagnostic and not action_def.file_diagnostic and not has_selection then
+					-- skip: selection-based action but no visual selection active
 				else
 					table.insert(actions, make_code_action(action_def))
 				end

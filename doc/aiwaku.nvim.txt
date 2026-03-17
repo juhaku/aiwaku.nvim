@@ -12,7 +12,8 @@ CONTENTS                                                       *aiwaku-contents*
   7. API .................................................... |aiwaku-api|
      7.1 Session Naming ............................ |aiwaku-session-naming|
   8. LSP Code Actions ................................. |aiwaku-code-actions|
-  9. Statusline Integration .................. |aiwaku-statusline|
+  9. User Commands .................................... |aiwaku-commands|
+ 10. Statusline Integration .................. |aiwaku-statusline|
 
 ==============================================================================
 1. INTRODUCTION                                                   *aiwaku-intro*
@@ -210,6 +211,10 @@ keymaps ~
           command = function() require("aiwaku").select_tool() end,
           description = "Aiwaku: select CLI tool",
         },
+        ["<leader>aq"] = {
+          command = function() require("aiwaku").quit_all() end,
+          description = "Aiwaku: quit all sessions",
+        },
       },
       [{ "v" }] = {
         ["<leader>ai"] = {
@@ -311,6 +316,7 @@ Default normal mode keymaps:~
   `<leader>ad`    Send the diagnostic under cursor (or all buffer
                   diagnostics if none on this line) to the AI
   `<leader>at`    Select the active CLI tool (picker)
+  `<leader>aq`    Kill all sessions and close the sidebar
 
 Default visual mode keymaps:~
 
@@ -425,6 +431,13 @@ session_name()
   stripped. Returns nil when no session is active or before setup() is
   called. Safe to call from statusline expressions at any time.
 
+                                                       *aiwaku.quit_all()*
+quit_all()
+  Kill all active AI tmux sessions, wipe their cached Neovim terminal
+  buffers, close the sidebar window, and reset the plugin state. Use this
+  for a clean teardown of every aiwaku session at once. Notifies the user
+  with "[aiwaku] All sessions closed" on success.
+
 ==============================================================================
 7.1 Session Naming                                      *aiwaku-session-naming*
 
@@ -469,9 +482,9 @@ Register the source alongside your other null-ls sources: >lua
 
 Default actions:~
 
-  AI: send selection              Send selection without a prompt prefix
-  AI: explain this code       Prepend "explain this code:" before selection
-  AI: refactor this code      Prepend "refactor this code:" before selection
+  AI: send selection              Send selection (only shown when text is selected)
+  AI: explain this code       Prepend "explain this code:" before selection (only shown when text is selected)
+  AI: refactor this code      Prepend "refactor this code:" before selection (only shown when text is selected)
   AI: send this file          Send full buffer without a prompt prefix
   AI: explain this file       Prepend "explain this file:" before buffer content
   AI: send diagnostics        Send cursor-line diagnostics (cursor must have a diagnostic)
@@ -479,16 +492,18 @@ Default actions:~
   AI: send file diagnostics   Send all buffer diagnostics (shown when buffer has any diagnostic)
 
 Actions without `buffer`, `diagnostic`, or `file_diagnostic` call
-|aiwaku.send_selection()| internally. Actions with `buffer = true` call
-|aiwaku.send_buffer()|. Actions with `diagnostic = true` call
-|aiwaku.send_diagnostic()| and are only shown when the cursor line has a
-diagnostic. Actions with `file_diagnostic = true` call
-|aiwaku.send_file_diagnostics()| and are only shown when the buffer has at
-least one diagnostic. The sidebar is opened automatically if not visible.
+|aiwaku.send_selection()| internally and are only visible when text is
+selected (i.e. when code actions are invoked from visual mode). Actions
+with `buffer = true` call |aiwaku.send_buffer()|. Actions with
+`diagnostic = true` call |aiwaku.send_diagnostic()| and are only shown
+when the cursor line has a diagnostic. Actions with `file_diagnostic =
+true` call |aiwaku.send_file_diagnostics()| and are only shown when the
+buffer has at least one diagnostic. The sidebar is opened automatically
+if not visible.
 
-Overriding the action list:~
+Replacing the action list:~
 
-  You can replace the defaults during |aiwaku-setup|: >lua
+  The list you provide completely replaces the defaults during |aiwaku-setup|: >lua
 
     require("aiwaku").setup({
       cmd = { "opencode" },
@@ -508,11 +523,38 @@ Overriding the action list:~
   `file_diagnostic = true` dispatch to |aiwaku.send_file_diagnostics()| and
   are only shown when the buffer has at least one diagnostic.
 
+  To extend the defaults rather than replace them, reference the built-in
+  list directly: >lua
+
+    require("aiwaku").setup({
+      lsp_code_actions = vim.list_extend(
+        vim.deepcopy(require("aiwaku.config").defaults.lsp_code_actions),
+        {
+          { title = "AI: write tests", prompt = "write tests for:" },
+        }
+      ),
+    })
+<
+
 Actions are available for all filetypes when null-ls has an active client on
 the buffer.
 
 ==============================================================================
-9. STATUSLINE INTEGRATION                                    *aiwaku-statusline*
+9. USER COMMANDS                                              *aiwaku-commands*
+
+The single `:Aiwaku {subcmd}` command is registered by |aiwaku-setup|.
+Subcommands support tab completion.
+
+  :Aiwaku toggle               Toggle the sidebar (open/close)
+  :Aiwaku new [{name}]         Create a new session; {name} is optional
+  :Aiwaku select               Open session picker
+  :Aiwaku rename               Rename current session interactively
+  :Aiwaku clear                Clear context (kill and restart session)
+  :Aiwaku tool                 Open tool picker
+  :Aiwaku quit                 Kill all sessions and close the sidebar
+
+==============================================================================
+10. STATUSLINE INTEGRATION                                    *aiwaku-statusline*
 
 |aiwaku.session_name()| returns the display name of the active session (with
 the "ai-" prefix stripped), or nil when no session is active.

@@ -12,6 +12,7 @@ M.select_session = session.select_session
 M.select_tool = session.select_tool
 M.clear_context = session.clear_context
 M.rename_session = session.rename_session
+M.quit_all = session.quit_all
 M.send_selection = sender.send_selection
 M.send_buffer = sender.send_buffer
 M.send_diagnostic = sender.send_diagnostic
@@ -73,6 +74,11 @@ function M.setup(opts)
 	---@type Aiwaku.Config
 	state.config = vim.tbl_deep_extend("force", config.defaults, opts or {})
 	state.config.cmd = config.normalize_cmd(state.config.cmd)
+	-- lsp_code_actions is a list; tbl_deep_extend merges by integer index rather
+	-- than replacing the whole array. When the user supplies it, use it as-is.
+	if opts and opts.lsp_code_actions then
+		state.config.lsp_code_actions = opts.lsp_code_actions
+	end
 
 	local km = state.config.keymaps
 	local kopts = { noremap = true, silent = true }
@@ -82,6 +88,43 @@ function M.setup(opts)
 			vim.keymap.set(mode, lhs, k.command, vim.tbl_extend("force", kopts, { desc = k.description }))
 		end
 	end
+
+	local subcmds = { "toggle", "new", "select", "rename", "clear", "tool", "quit" }
+	vim.api.nvim_create_user_command("Aiwaku", function(args)
+		local sub = args.fargs[1]
+		if sub == "toggle" then
+			M.toggle()
+		elseif sub == "new" then
+			M.new_session(args.fargs[2])
+		elseif sub == "select" then
+			M.select_session()
+		elseif sub == "rename" then
+			M.rename_session()
+		elseif sub == "clear" then
+			M.clear_context()
+		elseif sub == "tool" then
+			M.select_tool()
+		elseif sub == "quit" then
+			M.quit_all()
+		else
+			vim.notify("[aiwaku] Unknown subcommand: " .. tostring(sub), vim.log.levels.WARN)
+		end
+	end, {
+		nargs = "+",
+		complete = function(arglead, cmdline, _)
+			-- Only complete the first (subcommand) argument
+			if cmdline:match("^%s*Aiwaku%s+%S+%s") then
+				return {}
+			end
+			local matches = {}
+			for _, s in ipairs(subcmds) do
+				if vim.startswith(s, arglead) then
+					table.insert(matches, s)
+				end
+			end
+			return matches
+		end,
+	})
 
 	-- Autocmd: automatically enter terminal mode when focusing a sidebar buffer
 	vim.api.nvim_create_autocmd("BufEnter", {

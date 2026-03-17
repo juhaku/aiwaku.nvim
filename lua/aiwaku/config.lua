@@ -94,6 +94,12 @@ M.defaults = {
 				end,
 				description = "Aiwaku: select CLI tool",
 			},
+			["<leader>aq"] = {
+				command = function()
+					require("aiwaku").quit_all()
+				end,
+				description = "Aiwaku: quit all sessions",
+			},
 		},
 		[{ "v" }] = {
 			["<leader>ai"] = {
