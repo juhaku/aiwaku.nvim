@@ -380,4 +380,38 @@ function M.restore_session()
 	end
 end
 
+---Kill all active AI tmux sessions, wipe their cached buffers, close the
+---sidebar window, and reset plugin state. Useful for a clean teardown.
+---@return nil
+function M.quit_all()
+	if state.busy then
+		return
+	end
+
+	if not state.config then
+		vim.notify("[aiwaku] Call setup() before quit_all()", vim.log.levels.ERROR)
+		return
+	end
+
+	local sessions = tmux.list_sessions()
+	for _, s in ipairs(sessions) do
+		local name = s.name
+		tmux.kill_session(name)
+
+		local cached_buf = state.session_bufnrs[name]
+		if terminal.buf_alive(cached_buf) then
+			local job_id = vim.b[cached_buf].terminal_job_id
+			if job_id and vim.fn.jobstop(job_id) == 0 then
+				vim.notify("[aiwaku] Could not stop terminal job: " .. job_id, vim.log.levels.WARN)
+			end
+			vim.api.nvim_buf_delete(cached_buf, { force = true })
+		end
+		state.session_bufnrs[name] = nil
+	end
+
+	close_sidebar_window()
+	state.current_session = nil
+	vim.notify("[aiwaku] All sessions closed", vim.log.levels.INFO)
+end
+
 return M
