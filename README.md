@@ -211,6 +211,7 @@ require("aiwaku").setup({
 
 ## Configuration Options
 
+<<<<<<< feature/auto-restore-session-on-load
 | Option                    | Type                                                                                                           | Default         | Description                                                                       |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------- |
 | `cmd`                     | `string \| string[] \| CliTool[]`                                                                              | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted.               |
@@ -221,6 +222,18 @@ require("aiwaku").setup({
 | `keymaps`                 | `table`                                                                                                        | see above       | Normal/visual mode keymaps                                                        |
 | `lsp_code_actions`        | `{ title = string, prompt? = string, buffer? = boolean, diagnostic? = boolean, file_diagnostic? = boolean }[]` | see above       | LSP code actions exposed through null-ls/none-ls                                  |
 | `terminal_keymaps`        | `table`                                                                                                        | see above       | Keymaps active inside the terminal buffer                                         |
+=======
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `cmd` | `string \| string[] \| CliTool[]` | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted. |
+| `width` | `integer` | `80` | Sidebar panel width in columns |
+| `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
+| `auto_submit` | `boolean` | `false` | When true, sends Enter after content to trigger immediate AI processing |
+| `restore_on_session_load` | `boolean` | `true` | When true, auto-restores the last-used AI session when a Neovim session is loaded |
+| `keymaps` | `table` | see above | Normal/visual mode keymaps |
+| `lsp_code_actions` | `{ title = string, prompt? = string, buffer? = boolean, diagnostic? = boolean, file_diagnostic? = boolean }[]` | see above | LSP code actions exposed through null-ls/none-ls |
+| `terminal_keymaps` | `table` | see above | Keymaps active inside the terminal buffer |
+>>>>>>> master
 
 ## Default Keymaps
 
