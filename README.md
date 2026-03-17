@@ -309,17 +309,6 @@ require("aiwaku").setup({
 })
 ```
 
-```lua
-require("aiwaku").setup({
-  cmd = { "opencode" },
-  lsp_code_actions = {
-    { title = "AI: send selection" },
-    { title = "AI: write tests", prompt = "write tests for:" },
-    { title = "AI: review this code", prompt = "review this code:" },
-  },
-})
-```
-
 Each entry requires a `title`. The `prompt` field is optional; when omitted, aiwaku sends the
 current selection without a prefix. Entries with `buffer = true` send the entire current buffer
 instead of the visual selection. Entries with `diagnostic = true` send cursor-line diagnostics and
