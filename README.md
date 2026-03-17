@@ -211,7 +211,7 @@ require("aiwaku").setup({
 
 ## Configuration Options
 
-<<<<<<< feature/auto-restore-session-on-load
+
 | Option                    | Type                                                                                                           | Default         | Description                                                                       |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------- |
 | `cmd`                     | `string \| string[] \| CliTool[]`                                                                              | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted.               |
@@ -222,18 +222,6 @@ require("aiwaku").setup({
 | `keymaps`                 | `table`                                                                                                        | see above       | Normal/visual mode keymaps                                                        |
 | `lsp_code_actions`        | `{ title = string, prompt? = string, buffer? = boolean, diagnostic? = boolean, file_diagnostic? = boolean }[]` | see above       | LSP code actions exposed through null-ls/none-ls                                  |
 | `terminal_keymaps`        | `table`                                                                                                        | see above       | Keymaps active inside the terminal buffer                                         |
-=======
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `cmd` | `string \| string[] \| CliTool[]` | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted. |
-| `width` | `integer` | `80` | Sidebar panel width in columns |
-| `position` | `"right" \| "left"` | `"right"` | Side of the screen to open the panel |
-| `auto_submit` | `boolean` | `false` | When true, sends Enter after content to trigger immediate AI processing |
-| `restore_on_session_load` | `boolean` | `true` | When true, auto-restores the last-used AI session when a Neovim session is loaded |
-| `keymaps` | `table` | see above | Normal/visual mode keymaps |
-| `lsp_code_actions` | `{ title = string, prompt? = string, buffer? = boolean, diagnostic? = boolean, file_diagnostic? = boolean }[]` | see above | LSP code actions exposed through null-ls/none-ls |
-| `terminal_keymaps` | `table` | see above | Keymaps active inside the terminal buffer |
->>>>>>> master
 
 ## Default Keymaps
 
@@ -305,7 +293,6 @@ when null-ls is active on the buffer:
 | **AI: fix diagnostics**       | Prepend a fix prompt before cursor-line diagnostics — only shown when cursor line has a diagnostic |
 | **AI: send file diagnostics** | Send all diagnostics for the current file — only shown when the buffer has any diagnostic          |
 
-
 ### Replacing the action list
 
 By default, a new `lsp_code_actions` list replaces the default LSP code actions.
@@ -339,7 +326,6 @@ instead of the visual selection. Entries with `diagnostic = true` send cursor-li
 are only shown in the menu when the cursor line has a diagnostic. Entries with `file_diagnostic =
 true` send all buffer diagnostics and are only shown when the buffer has at least one diagnostic.
 
-
 > **Note:** null-ls (or its community fork [none-ls](https://github.com/nvimtools/none-ls.nvim))
 > must be installed and have an active client attached to the buffer for code actions to appear.
 
@@ -347,15 +333,15 @@ true` send all buffer diagnostics and are only shown when the buffer has at leas
 
 The following commands are registered by `setup()`:
 
-| Command                  | Description                                          |
-| ------------------------ | ---------------------------------------------------- |
-| `:Aiwaku toggle`         | Toggle the sidebar open/closed                       |
-| `:Aiwaku new [name]`     | Create a new session (optional custom name)          |
-| `:Aiwaku select`         | Open the session picker                              |
-| `:Aiwaku rename`         | Rename the current session                           |
-| `:Aiwaku clear`          | Clear context — kill and restart the current session |
-| `:Aiwaku tool`           | Open the CLI tool picker                             |
-| `:Aiwaku quit`           | Kill all sessions and close the sidebar              |
+| Command              | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `:Aiwaku toggle`     | Toggle the sidebar open/closed                       |
+| `:Aiwaku new [name]` | Create a new session (optional custom name)          |
+| `:Aiwaku select`     | Open the session picker                              |
+| `:Aiwaku rename`     | Rename the current session                           |
+| `:Aiwaku clear`      | Clear context — kill and restart the current session |
+| `:Aiwaku tool`       | Open the CLI tool picker                             |
+| `:Aiwaku quit`       | Kill all sessions and close the sidebar              |
 
 Subcommands support tab completion.
 
@@ -363,24 +349,23 @@ Subcommands support tab completion.
 
 Comparison with [sidekick.nvim](https://github.com/folke/sidekick.nvim):
 
-| Feature | aiwaku.nvim | sidekick.nvim |
-| --------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------- |
-| **Copilot NES** (inline diffs, `<Tab>`) | — | ✅ primary feature; requires Copilot subscription + Neovim ≥ 0.11.2 |
-| **Session persistence** | ✅ always-on via tmux (required) | opt-in (`mux.enabled = true`); off by default |
-| **Multiple named sessions** | ✅ create / switch / rename | one terminal per tool; no custom naming |
-| **CLI terminal — any tool** | ✅ | ✅ |
-| **Preconfigured tool catalog** | — | ✅ 11 tools |
-| **Context variable templates** | — | ✅ `{this}`, `{function}`, `{class}`, `{quickfix}`, `{buffers}`, … |
-| **Send selection / buffer / diagnostics** | ✅ explicit commands + keymaps | ✅ via context variables |
-| **LSP code actions (null-ls/none-ls)** | ✅ | — |
-| **Auto-reload AI-modified files** | — | ✅ |
-| **Terminal layout** | left / right | left / right / top / bottom / float |
-| **Statusline API** | ✅ `session_name()` | ✅ full Copilot + CLI status API |
-| **Snacks.nvim picker integration** | — | ✅ |
-| **`:checkhealth` support** | ✅ | ✅ |
-| **Neovim minimum** | 0.10 | 0.11.2 |
-| **tmux required** | ✅ hard dependency | optional (`mux.backend`) |
-
+| Feature                                   | aiwaku.nvim                      | sidekick.nvim                                                       |
+| ----------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| **Copilot NES** (inline diffs, `<Tab>`)   | —                                | ✅ primary feature; requires Copilot subscription + Neovim ≥ 0.11.2 |
+| **Session persistence**                   | ✅ always-on via tmux (required) | opt-in (`mux.enabled = true`); off by default                       |
+| **Multiple named sessions**               | ✅ create / switch / rename      | one terminal per tool; no custom naming                             |
+| **CLI terminal — any tool**               | ✅                               | ✅                                                                  |
+| **Preconfigured tool catalog**            | —                                | ✅ 11 tools                                                         |
+| **Context variable templates**            | —                                | ✅ `{this}`, `{function}`, `{class}`, `{quickfix}`, `{buffers}`, …  |
+| **Send selection / buffer / diagnostics** | ✅ explicit commands + keymaps   | ✅ via context variables                                            |
+| **LSP code actions (null-ls/none-ls)**    | ✅                               | —                                                                   |
+| **Auto-reload AI-modified files**         | —                                | ✅                                                                  |
+| **Terminal layout**                       | left / right                     | left / right / top / bottom / float                                 |
+| **Statusline API**                        | ✅ `session_name()`              | ✅ full Copilot + CLI status API                                    |
+| **Snacks.nvim picker integration**        | —                                | ✅                                                                  |
+| **`:checkhealth` support**                | ✅                               | ✅                                                                  |
+| **Neovim minimum**                        | 0.10                             | 0.11.2                                                              |
+| **tmux required**                         | ✅ hard dependency               | optional (`mux.backend`)                                            |
 
 ## License
 
