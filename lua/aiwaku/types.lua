@@ -26,7 +26,7 @@
 ---@field terminal_keymaps {[string]: Aiwaku.Keymap} Map of terminal buffer keymaps
 
 ---@class Aiwaku.ToggleOpts
----@field jump? boolean  When true, if the sidebar is visible but not focused, focus it instead of closing; when hidden, toggle still opens/creates it
+---@field jump? boolean  When true, toggle behaves as: if the sidebar is hidden, open/create it; if visible but not focused, focus it instead of closing; if visible and focused, close it
 
 ---@class Aiwaku.Session
 ---@field name string    tmux session name (e.g. "ai-20260305234735-1234"); acts as the unique identifier
