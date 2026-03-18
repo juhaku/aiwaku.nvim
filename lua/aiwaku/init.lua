@@ -6,7 +6,12 @@ local state = require("aiwaku.state")
 local session = require("aiwaku.session")
 local sender = require("aiwaku.send")
 
-M.toggle = session.toggle
+---Toggle the AI sidebar.
+---@param opts? Aiwaku.ToggleOpts
+---@return nil
+function M.toggle(opts)
+	session.toggle(opts)
+end
 M.new_session = session.new_session
 M.select_session = session.select_session
 M.select_tool = session.select_tool
@@ -67,6 +72,41 @@ function M.open_cword_in_tab()
 	end
 end
 
+-- Merge user keymaps into the defaults by matching mode groups by value.
+-- tbl_deep_extend uses table references as keys so two distinct { "n" } tables
+-- never merge; this function compares mode lists by their sorted contents instead.
+---@param defaults {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap}}
+---@param user_km {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap}}|nil
+---@return {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap}}
+local function merge_keymaps(defaults, user_km)
+	if not user_km then
+		return defaults
+	end
+	local function mode_sig(modes)
+		local m = vim.list_extend({}, modes)
+		table.sort(m)
+		return table.concat(m, ",")
+	end
+	-- Build a signature→key lookup from the defaults
+	local sig_to_key = {}
+	local result = vim.deepcopy(defaults)
+	for modes in pairs(result) do
+		sig_to_key[mode_sig(modes)] = modes
+	end
+	for user_modes, user_bindings in pairs(user_km) do
+		local key = sig_to_key[mode_sig(user_modes)]
+		if key then
+			-- Merge individual lhs entries into the existing mode group
+			for lhs, binding in pairs(user_bindings) do
+				result[key][lhs] = binding
+			end
+		else
+			result[user_modes] = vim.deepcopy(user_bindings)
+		end
+	end
+	return result
+end
+
 ---Initialize the aiwaku module.
 ---Call this once from your Neovim config (e.g. keymap.lua).
 ---@param opts? Aiwaku.Config Partial config; unset keys fall back to defaults
@@ -78,6 +118,11 @@ function M.setup(opts)
 	-- than replacing the whole array. When the user supplies it, use it as-is.
 	if opts and opts.lsp_code_actions then
 		state.config.lsp_code_actions = opts.lsp_code_actions
+	end
+	-- keymaps uses array tables as keys; tbl_deep_extend cannot merge them by
+	-- value. Re-merge user keymaps so individual lhs overrides work correctly.
+	if opts and opts.keymaps then
+		state.config.keymaps = merge_keymaps(config.defaults.keymaps, opts.keymaps)
 	end
 
 	local km = state.config.keymaps
@@ -93,7 +138,14 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("Aiwaku", function(args)
 		local sub = args.fargs[1]
 		if sub == "toggle" then
-			M.toggle()
+			local toggle_opt = args.fargs[2]
+			if toggle_opt ~= nil and toggle_opt ~= "jump" then
+				vim.notify("[aiwaku] Unknown toggle option: " .. tostring(toggle_opt), vim.log.levels.WARN)
+				return
+			end
+			M.toggle({
+				jump = toggle_opt == "jump",
+			})
 		elseif sub == "new" then
 			M.new_session(args.fargs[2])
 		elseif sub == "select" then
@@ -112,8 +164,16 @@ function M.setup(opts)
 	end, {
 		nargs = "+",
 		complete = function(arglead, cmdline, _)
-			-- Only complete the first (subcommand) argument
 			if cmdline:match("^%s*Aiwaku%s+%S+%s") then
+				if cmdline:match("^%s*Aiwaku%s+toggle%s+") then
+					local matches = {}
+					for _, s in ipairs({ "jump" }) do
+						if vim.startswith(s, arglead) then
+							table.insert(matches, s)
+						end
+					end
+					return matches
+				end
 				return {}
 			end
 			local matches = {}

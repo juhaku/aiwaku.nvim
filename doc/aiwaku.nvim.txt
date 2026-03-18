@@ -68,8 +68,9 @@ Using lazy.nvim: >lua
 ==============================================================================
 4. SETUP                                                          *aiwaku-setup*
 
-Call `require("aiwaku").setup(opts)` once during Neovim startup. The only
-required option is `cmd`.
+Call `require("aiwaku").setup(opts)` once during Neovim startup.
+{opts} is optional; when omitted, defaults are used (including
+`cmd = { "copilot" }`).
 
 Minimal example: >lua
 
@@ -111,7 +112,7 @@ cmd ~
                                                           *aiwaku-config-width*
 width ~
   Type: `integer`
-  Default: `80`
+  Default: `100`
 
   Width of the sidebar panel in columns.
 
@@ -178,6 +179,8 @@ keymaps ~
 
   Map of mode lists to keymap definitions. Each entry maps a left-hand side
   string to a table with `command` (string or function) and `description`.
+  This table extends the built-in defaults: matching mode groups/lhs entries
+  override defaults, but omitted default mappings stay active.
 
   Default: >lua
 
@@ -260,6 +263,8 @@ terminal_keymaps ~
 
   Keymaps active only inside the sidebar terminal buffer. Keys map to a table
   with `command` (string) and `description`.
+  This table also extends the built-in defaults: matching lhs entries override
+  defaults, but omitted default mappings stay active.
 
   Default: >lua
 
@@ -334,32 +339,38 @@ Default terminal mode keymaps (inside the sidebar):~
   `<C-a>t`        Select the active CLI tool (picker)
   `<C-o>`         Open file path under cursor in a new tab
 
-All keymaps can be overridden or disabled by setting `keymaps` and
-`terminal_keymaps` in your |aiwaku-setup| call. Pass an empty table to disable
-all default keymaps.
+Default keymaps cannot be disabled by omission in setup; they can only be
+overridden by defining the same mode/lhs entry (or changed later with your own
+explicit keymap operations).
 
 ==============================================================================
 7. API                                                             *aiwaku-api*
 
-All functions are on the module returned by `require("aiwaku")`. They must be
-called after |aiwaku-setup| has been invoked.
+All functions are on the module returned by `require("aiwaku")`.
+Most functions should be called after |aiwaku-setup| has been invoked.
+|aiwaku.session_name()| and |aiwaku.open_cword_in_tab()| are safe before setup.
 
-                                                             *aiwaku.setup()*
-setup({opts})
-  Initialize the plugin. Must be called once before any other function.
+                                                            *aiwaku.setup()*
+setup([{opts}])
+  Initialize the plugin. Must be called once before functions that depend on
+  resolved configuration.
   {opts} is merged with the defaults; unset keys fall back to defaults.
 
-                                                            *aiwaku.toggle()*
-toggle()
+                                                           *aiwaku.toggle()*
+toggle([{opts}])
   Open the sidebar if hidden, close it if visible.
+  {opts} is optional. `{opts}.jump` is an optional boolean.
+  When `{opts}.jump` is true, toggle jumps to the sidebar when it is already
+  open but not focused; if the sidebar is focused, it closes.
   When opening, resumes the current session if one is active; creates a new
   session otherwise.
 
                                                        *aiwaku.new_session()*
 new_session([{name}])
   Create a new AI session with an optional {name}. If {name} is omitted a
-  unique auto-generated name is created using the active tool name, a random
-  adjective-noun pair, and a hex suffix (e.g. "ai-claude-quirky-tesla-a7f3").
+  unique auto-generated name is created using the active tool name, current
+  working directory basename, a random adjective-noun pair, and a hex suffix
+  (e.g. "ai-claude-myproj-quirky-tesla-a7f3").
   Opens the sidebar showing the new session. Uses the tool selected via
   |aiwaku.select_tool()|; falls back to the first configured tool.
 
@@ -428,8 +439,10 @@ open_cword_in_tab()
                                                    *aiwaku.session_name()*
 session_name()
   Return the display name of the active AI session with the "ai-" prefix
-  stripped. Returns nil when no session is active or before setup() is
-  called. Safe to call from statusline expressions at any time.
+  stripped. For auto-generated sessions this includes the tool name and cwd
+  basename (for example: "claude-myproj-quirky-tesla-a7f3"). Returns nil when
+  no session is active or before setup() is called. Safe to call from
+  statusline expressions at any time.
 
                                                        *aiwaku.quit_all()*
 quit_all()
@@ -443,13 +456,13 @@ quit_all()
 
 Sessions are created with auto-generated human-readable names in the format: >
 
-  ai-<tool>-<adjective>-<noun>-<hex>
+  ai-<tool>-<cwd>-<adjective>-<noun>-<hex>
 <
 
 Examples:
-  • ai-claude-quirky-tesla-a7f3
-  • ai-copilot-festive-hawking-c2e1
-  • ai-opencode-mysterious-shannon-9f4b
+  • ai-claude-myproj-quirky-tesla-a7f3
+  • ai-copilot-root-festive-hawking-c2e1
+  • ai-opencode-api-mysterious-shannon-9f4b
 
 The adjective-noun pair is drawn from a curated list of descriptive words and
 scientists' names (Docker-style), providing ~4,880 base combinations. The
@@ -458,6 +471,8 @@ combinations to prevent collisions across sessions.
 
 You can pass a custom {name} to |aiwaku.new_session(name)| to override the
 default naming.
+To keep sessions discoverable in |aiwaku.select_session()| and other
+session-list operations, keep the "ai-" prefix in custom names.
 
 ==============================================================================
 8. LSP CODE ACTIONS                                        *aiwaku-code-actions*
@@ -546,6 +561,8 @@ The single `:Aiwaku {subcmd}` command is registered by |aiwaku-setup|.
 Subcommands support tab completion.
 
   :Aiwaku toggle               Toggle the sidebar (open/close)
+  :Aiwaku toggle jump          Jump to the sidebar if it is not focused,
+                               otherwise close it
   :Aiwaku new [{name}]         Create a new session; {name} is optional
   :Aiwaku select               Open session picker
   :Aiwaku rename               Rename current session interactively
@@ -557,7 +574,8 @@ Subcommands support tab completion.
 10. STATUSLINE INTEGRATION                                    *aiwaku-statusline*
 
 |aiwaku.session_name()| returns the display name of the active session (with
-the "ai-" prefix stripped), or nil when no session is active.
+the "ai-" prefix stripped). Auto-generated names include tool and cwd
+basename segments. Returns nil when no session is active.
 
 lualine example: >lua
 
@@ -584,5 +602,3 @@ The function is safe to call before setup() — it returns nil without error.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
-
-
