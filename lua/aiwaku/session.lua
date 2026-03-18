@@ -24,7 +24,7 @@ end
 ---Generate a unique tmux session name for the aiwaku.
 ---Format: "ai-<tool>-<cwd>-<adjective>-<noun>-<hex>"
 ---@param tool_name string  Name of the active CLI tool
----@return string name  e.g. "ai-claude-quirky-tesla-a7f3"
+---@return string name  e.g. "ai-claude-myproj-quirky-tesla-a7f3"
 local function gen_session_name(tool_name)
 	local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
 	if cwd == "" or cwd == "." then
@@ -46,7 +46,7 @@ end
 
 ---Find a tmux session by name.
 ---Returns the session table when the tmux session exists, nil otherwise.
----@param name string tmux session name (e.g. "ai-claude-quirky-tesla-a7f3")
+---@param name string tmux session name (e.g. "ai-claude-myproj-quirky-tesla-a7f3")
 ---@return Aiwaku.Session|nil
 function M.find_session(name)
 	if not tmux.session_exists(name) then
