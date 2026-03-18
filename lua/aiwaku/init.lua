@@ -138,8 +138,13 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("Aiwaku", function(args)
 		local sub = args.fargs[1]
 		if sub == "toggle" then
+			local toggle_opt = args.fargs[2]
+			if toggle_opt ~= nil and toggle_opt ~= "jump" then
+				vim.notify("[aiwaku] Unknown toggle option: " .. tostring(toggle_opt), vim.log.levels.WARN)
+				return
+			end
 			M.toggle({
-				jump = args.fargs[2] == "jump",
+				jump = toggle_opt == "jump",
 			})
 		elseif sub == "new" then
 			M.new_session(args.fargs[2])
