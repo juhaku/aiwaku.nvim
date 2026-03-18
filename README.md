@@ -100,7 +100,7 @@ require("aiwaku").setup({
   cmd = { "copilot" },
 
   -- Sidebar width in columns.
-  width = 80,
+  width = 100,
 
   -- Which side to open the sidebar on.
   position = "right", -- "right" | "left"
@@ -317,22 +317,6 @@ true` send all buffer diagnostics and are only shown when the buffer has at leas
 
 > **Note:** null-ls (or its community fork [none-ls](https://github.com/nvimtools/none-ls.nvim))
 > must be installed and have an active client attached to the buffer for code actions to appear.
-
-## User Commands
-
-The following commands are registered by `setup()`:
-
-| Command              | Description                                          |
-| -------------------- | ---------------------------------------------------- |
-| `:Aiwaku toggle`     | Toggle the sidebar open/closed                       |
-| `:Aiwaku new [name]` | Create a new session (optional custom name)          |
-| `:Aiwaku select`     | Open the session picker                              |
-| `:Aiwaku rename`     | Rename the current session                           |
-| `:Aiwaku clear`      | Clear context — kill and restart the current session |
-| `:Aiwaku tool`       | Open the CLI tool picker                             |
-| `:Aiwaku quit`       | Kill all sessions and close the sidebar              |
-
-Subcommands support tab completion.
 
 ## Comparison
 

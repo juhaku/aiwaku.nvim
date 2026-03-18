@@ -17,13 +17,16 @@
 
 ---@class Aiwaku.Config
 ---@field cmd string|string[]|Aiwaku.CliTool[]  CLI tool(s) to run; old string/string[] formats are still accepted
----@field width integer             Sidebar column width (default: 80)
+---@field width integer             Sidebar column width (default: 100)
 ---@field position "right"|"left"   Which side to open (default: "right")
 ---@field auto_submit boolean       When true, sends Enter after content to trigger immediate AI processing (default: false)
 ---@field restore_on_session_load boolean  When true, auto-restores the last-used AI session when a Neovim session is loaded (default: true)
 ---@field keymaps {[Aiwaku.Keymap.Mode[]]: {[string]: Aiwaku.Keymap} } Map of default action keymaps
 ---@field lsp_code_actions Aiwaku.LspCodeAction[] Default LSP code actions exposed through null-ls/none-ls
 ---@field terminal_keymaps {[string]: Aiwaku.Keymap} Map of terminal buffer keymaps
+
+---@class Aiwaku.ToggleOpts
+---@field jump? boolean  When true, focus the sidebar if hidden/unfocused instead of closing it
 
 ---@class Aiwaku.Session
 ---@field name string    tmux session name (e.g. "ai-20260305234735-1234"); acts as the unique identifier

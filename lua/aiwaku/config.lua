@@ -46,7 +46,7 @@ end
 ---@type Aiwaku.Config
 M.defaults = {
 	cmd = { "copilot" },
-	width = 80,
+	width = 100,
 	position = "right",
 	auto_submit = false,
 	restore_on_session_load = true,

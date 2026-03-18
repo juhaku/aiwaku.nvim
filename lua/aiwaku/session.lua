@@ -22,11 +22,15 @@ local function close_sidebar_window()
 end
 
 ---Generate a unique tmux session name for the aiwaku.
----Format: "ai-<tool>-<adjective>-<noun>-<hex>"
+---Format: "ai-<tool>-<cwd>-<adjective>-<noun>-<hex>"
 ---@param tool_name string  Name of the active CLI tool
 ---@return string name  e.g. "ai-claude-quirky-tesla-a7f3"
 local function gen_session_name(tool_name)
-	local parts = { "ai", tool_name, words.random_pair() }
+	local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+	if cwd == "" or cwd == "." then
+		cwd = "root"
+	end
+	local parts = { "ai", tool_name, cwd, words.random_pair() }
 	return table.concat(parts, "-")
 end
 
@@ -114,9 +118,11 @@ function M.new_session(name)
 	}
 end
 
----Toggle the aiwaku: hide it if visible, show or create if hidden.
+---Toggle the aiwaku: hide it if focused, focus it if `jump` is enabled and it is
+---already open but not focused, show or create it otherwise.
 ---Resumes the current tmux session when one is active; creates a new one otherwise.
-function M.toggle()
+---@param opts? Aiwaku.ToggleOpts
+function M.toggle(opts)
 	if state.busy then
 		return
 	end
@@ -127,7 +133,20 @@ function M.toggle()
 	end
 
 	if window.win_visible_in_current_tab(state.win_id) then
-		close_sidebar_window()
+		if opts and opts.jump then
+			if vim.api.nvim_get_current_win() == state.win_id then
+				close_sidebar_window()
+			else
+				local session = state.current_session and M.find_session(state.current_session)
+				if session then
+					M.open_session(session)
+				else
+					close_sidebar_window()
+				end
+			end
+		else
+			close_sidebar_window()
+		end
 		return
 	end
 

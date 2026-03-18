@@ -111,7 +111,7 @@ cmd ~
                                                           *aiwaku-config-width*
 width ~
   Type: `integer`
-  Default: `80`
+  Default: `100`
 
   Width of the sidebar panel in columns.
 
@@ -349,9 +349,11 @@ setup({opts})
   Initialize the plugin. Must be called once before any other function.
   {opts} is merged with the defaults; unset keys fall back to defaults.
 
-                                                            *aiwaku.toggle()*
-toggle()
+                                                           *aiwaku.toggle()*
+toggle({opts})
   Open the sidebar if hidden, close it if visible.
+  When {opts}.jump is true, toggle jumps to the sidebar when it is already
+  open but not focused; if the sidebar is focused, it closes.
   When opening, resumes the current session if one is active; creates a new
   session otherwise.
 
@@ -546,6 +548,8 @@ The single `:Aiwaku {subcmd}` command is registered by |aiwaku-setup|.
 Subcommands support tab completion.
 
   :Aiwaku toggle               Toggle the sidebar (open/close)
+  :Aiwaku toggle jump          Jump to the sidebar if it is not focused,
+                               otherwise close it
   :Aiwaku new [{name}]         Create a new session; {name} is optional
   :Aiwaku select               Open session picker
   :Aiwaku rename               Rename current session interactively
@@ -584,5 +588,4 @@ The function is safe to call before setup() — it returns nil without error.
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
-
 
