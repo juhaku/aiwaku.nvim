@@ -137,11 +137,10 @@ function M.toggle(opts)
 			if vim.api.nvim_get_current_win() == state.win_id then
 				close_sidebar_window()
 			else
-				local session = state.current_session and M.find_session(state.current_session)
-				if session then
-					M.open_session(session)
+				if vim.api.nvim_win_is_valid(state.win_id) then
+					vim.api.nvim_set_current_win(state.win_id)
 				else
-					close_sidebar_window()
+					state.win_id = nil
 				end
 			end
 		else
