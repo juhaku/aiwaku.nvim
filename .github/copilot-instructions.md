@@ -50,12 +50,40 @@ Runtime requirements still matter for code changes:
 - Follow the Lua code generation and review standards in `.github/instructions/lua.instructions.md`
 - Make sure to follow the recorded lessons before implementing `.github/instructions/context.instructions.md`
 - Make sure to consider all outcomes, expected, and unexpected behavior before implementation.
+- After every implementation change, run the full load-time smoke check defined in
+  `.github/instructions/lua.instructions.md` (Verification after changes). Every public API module
+  must load without errors or warnings before the change is finalised.
+- Trace any changed public API symbol end-to-end (from `init.lua` re-export to its final side
+  effect) to confirm no regressions. The complete public API surface is listed in
+  `.github/instructions/lua.instructions.md`.
 
 ## Code Review
 
 - Follow the Lua code generation and review standards in `.github/instructions/lua.instructions.md`
-- Make sure to consider all outcomes, expected, and unexpected behavior before implementation.
-- Make sure to follow, and update if needed, the recorded lessons based on your findings before implementing `.github/instructions/context.instructions.md`
+- Make sure to consider all outcomes, expected, and unexpected behavior before reviewing.
+- Make sure to follow, and update if needed, the recorded lessons based on your findings `.github/instructions/context.instructions.md`
+
+### Validation
+
+- Run the full load-time smoke check defined in `.github/instructions/lua.instructions.md` (Verification after changes).
+  Every public API module must load without errors or warnings.
+- Run `git diff --check` to catch trailing whitespace or merge artefacts.
+- Trace every changed public API symbol end-to-end (from `init.lua` re-export to its final side effect) to confirm no regressions.
+
+### Checklist
+
+- **No errors** — all modules must load cleanly; no syntax, runtime, or logic errors.
+- **No regressions** — existing behavior must be preserved. Verify the full public API surface listed in
+  `.github/instructions/lua.instructions.md`.
+- **Docs match implementation** — `README.md` and `doc/aiwaku.nvim.txt` must accurately reflect the current
+  behavior. If an option, keymap, command, or API was changed, both docs must be updated. Inline comments must
+  describe what the code actually does.
+- **No redundancies** — no duplicate guards, dead code, or logic that appears more than once per execution path.
+- **No performance issues** — no shell-outs in loops or on editor events, no O(n²) patterns, no repeated
+  buffer reads.
+- **Unified patterns** — if a pattern already exists (e.g., window visibility via `window.win_visible_in_current_tab()`,
+  notifications with `[aiwaku]` prefix, interactive flows via `plenary.async`), use it consistently. Do not
+  introduce a second way to do the same thing.
 
 ## Git Workflow
 

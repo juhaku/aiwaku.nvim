@@ -60,3 +60,58 @@ Annotations drive type-checking and IDE support. Keep them accurate.
 - Flag any O(n²) or repeated work (e.g., scanning the full session list inside another loop) and suggest lifting it outside the loop or using a lookup table.
 - Validate suspected performance issues with profiling or a concrete benchmark before assuming they matter at plugin scale.
 - Review changes against async leaks, performance issues, and design issues.
+
+## Verification after changes
+
+Every implementation change — no matter how small — must be verified before finalising.
+
+### Required: load-time smoke check
+
+Run the following command for **every modified module** and for **all public API modules** after any change:
+
+```bash
+nvim --headless \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/init.lua"); print(ok and "init: OK" or "init: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/session.lua"); print(ok and "session: OK" or "session: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/terminal.lua"); print(ok and "terminal: OK" or "terminal: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/send.lua"); print(ok and "send: OK" or "send: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/tmux.lua"); print(ok and "tmux: OK" or "tmux: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/window.lua"); print(ok and "window: OK" or "window: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/config.lua"); print(ok and "config: OK" or "config: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/state.lua"); print(ok and "state: OK" or "state: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/types.lua"); print(ok and "types: OK" or "types: " .. err)' \
+  -c 'lua local ok, err = loadfile("lua/aiwaku/lsp-code-actions.lua"); print(ok and "lsp-code-actions: OK" or "lsp-code-actions: " .. err)' \
+  -c 'qa!'
+```
+
+Every line must print `OK`. Any error is a blocker — do not proceed until resolved.
+
+### Required: diff review
+
+After every change run `git diff --check` and review the full `git diff` output. Confirm:
+
+- No trailing whitespace or merge artefacts were introduced.
+- Only the intended lines changed — no unrelated hunks.
+- All modified public functions still carry correct `---@param` / `---@return` annotations.
+
+### Public API surface
+
+The following symbols are part of the public API exposed by `require("aiwaku")`. Any change that touches a module contributing to this surface must be traced end-to-end — from `init.lua` re-export through to the final side effect — to confirm no regressions:
+
+- `setup(opts)`
+- `toggle(opts?)`
+- `new_session()`
+- `select_session()`
+- `rename_session()`
+- `clear_context()`
+- `send_selection(opts?)`
+- `send_buffer(opts?)`
+- `lsp_code_actions()`
+
+### Optional-dependency safety
+
+After any change to `lsp-code-actions.lua` or `init.lua`, confirm the module loads cleanly when `null-ls` / `none-ls` is absent by verifying the guarded `pcall(require, "null-ls")` path returns `{}` without error.
+
+### When automated tests do not exist
+
+This repository has no automated test suite. In the absence of automation, the above smoke check and diff review are **mandatory**, not optional. Do not skip them on the grounds that the change is "trivial".
