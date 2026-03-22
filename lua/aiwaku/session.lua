@@ -37,7 +37,9 @@ end
 ---@param tool_name string  Name of the active CLI tool
 ---@return string name  e.g. "ai-claude-myproj-quirky-tesla-a7f3"
 local function gen_session_name(tool_name)
-	local parts = { "ai", tool_name, current_cwd(), words.random_pair() }
+	-- Sanitize tool name to avoid tmux target-separator characters (. and :)
+	local safe_tool = tool_name:gsub("[%.:]", "-")
+	local parts = { "ai", safe_tool, current_cwd(), words.random_pair() }
 	return table.concat(parts, "-")
 end
 
