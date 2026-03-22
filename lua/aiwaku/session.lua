@@ -21,16 +21,23 @@ local function close_sidebar_window()
 	state.win_id = nil
 end
 
+---Return the sanitized tail component of the current working directory.
+---Replaces tmux target-separator characters (. and :) with hyphen so the
+---result is safe to embed in a session name that will be used as a -t target.
+---@return string cwd  e.g. "myproj" or "aiwaku-nvim"
+local function current_cwd()
+	local raw = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+	local cwd = (raw == "" or raw == ".") and "root" or raw
+	local result = cwd:gsub("[%.:]", "-")
+	return result
+end
+
 ---Generate a unique tmux session name for the aiwaku.
 ---Format: "ai-<tool>-<cwd>-<adjective>-<noun>-<hex>"
 ---@param tool_name string  Name of the active CLI tool
 ---@return string name  e.g. "ai-claude-myproj-quirky-tesla-a7f3"
 local function gen_session_name(tool_name)
-	local cwd = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
-	if cwd == "" or cwd == "." then
-		cwd = "root"
-	end
-	local parts = { "ai", tool_name, cwd, words.random_pair() }
+	local parts = { "ai", tool_name, current_cwd(), words.random_pair() }
 	return table.concat(parts, "-")
 end
 
@@ -120,7 +127,9 @@ end
 
 ---Toggle the aiwaku: hide it if focused, focus it if `jump` is enabled and it is
 ---already open but not focused, show or create it otherwise.
----Resumes the current tmux session when one is active; creates a new one otherwise.
+---Resumes the current tmux session when one is active; tries to reconnect to an
+---existing session for the current working directory otherwise; creates a new one
+---when no matching session exists.
 ---@param opts? Aiwaku.ToggleOpts
 function M.toggle(opts)
 	if state.busy then
@@ -149,9 +158,29 @@ function M.toggle(opts)
 		return
 	end
 
-	local session = state.current_session and M.find_session(state.current_session)
-	if session then
-		M.open_session(session)
+	if state.current_session then
+		local session = M.find_session(state.current_session)
+		if session then
+			M.open_session(session)
+			return
+		end
+		-- Stale reference: the tmux session no longer exists.
+		state.current_session = nil
+	end
+
+	-- No active session in state; try to reconnect to an existing aiwaku tmux
+	-- session for the current working directory before creating a fresh one.
+	-- Session names follow the pattern: ai-<tool>-<cwd>-<adj>-<noun>-<hex>.
+	local cwd_pattern = "^ai%-[^%-]+-" .. vim.pesc(current_cwd()) .. "%-"
+	local sessions = vim.iter(tmux.list_sessions()):filter(function(s)
+		return s.name:match(cwd_pattern) ~= nil
+	end):totable()
+	if #sessions > 0 then
+		-- Pick the most recently created session (ISO date string sorts correctly).
+		table.sort(sessions, function(a, b)
+			return a.created_at > b.created_at
+		end)
+		M.open_session(sessions[1])
 		return
 	end
 
@@ -377,7 +406,7 @@ function M.restore_session()
 				-- buffer; open_session will replace it with the live terminal.
 				vim.api.nvim_buf_delete(bufnr, { force = true })
 
-				if ghost_win then
+				if ghost_win and window.win_visible_in_current_tab(ghost_win) then
 					-- Restore the sidebar into the existing window without stealing focus.
 					local prev_win = vim.api.nvim_get_current_win()
 					state.win_id = ghost_win

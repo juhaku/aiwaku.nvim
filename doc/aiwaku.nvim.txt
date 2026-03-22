@@ -362,8 +362,9 @@ toggle([{opts}])
   {opts} is optional. `{opts}.jump` is an optional boolean.
   When `{opts}.jump` is true, toggle jumps to the sidebar when it is already
   open but not focused; if the sidebar is focused, it closes.
-  When opening, resumes the current session if one is active; creates a new
-  session otherwise.
+  When opening, resumes the current session if one is active; tries to reconnect
+  to an existing session for the current working directory; creates a new session
+  otherwise.
 
                                                        *aiwaku.new_session()*
 new_session([{name}])
