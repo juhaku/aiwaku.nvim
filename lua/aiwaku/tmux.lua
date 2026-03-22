@@ -73,7 +73,10 @@ function M.new_session_cmd(name, cmd)
 	if socket and socket ~= "" then
 		env_flag = " -e NVIM=" .. vim.fn.shellescape(socket)
 	end
-	return "tmux new-session -s "
+	-- Create the session detached (-d) so that set-option runs before the terminal
+	-- renders, preventing a brief status-bar flash. attach-session then connects
+	-- the terminal after options are already applied.
+	return "tmux new-session -d -s "
 		.. vim.fn.shellescape(name)
 		.. env_flag
 		.. " "
@@ -81,6 +84,8 @@ function M.new_session_cmd(name, cmd)
 		.. " \\; set-option -t "
 		.. vim.fn.shellescape(name)
 		.. " status off"
+		.. " \\; attach-session -t "
+		.. vim.fn.shellescape(name)
 end
 
 ---Return the shell command for joining an existing tmux session.
