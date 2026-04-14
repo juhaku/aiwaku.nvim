@@ -1,4 +1,3 @@
--- Requires: nvim-lua/plenary.nvim
 local M = {}
 
 local config = require("aiwaku.config")

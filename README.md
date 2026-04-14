@@ -40,7 +40,6 @@ switches. Your conversation context is always one keymap away.
 
 | Plugin                                                                           | Purpose                                                                                                                                                                       |
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [nvim-lua/plenary.nvim](https://github.com/nvim-lua/plenary.nvim)                | Async job execution                                                                                                                                                           |
 | [stevearc/dressing.nvim](https://github.com/stevearc/dressing.nvim) _(optional)_ | Floating UI for `vim.ui.select`; without it Neovim falls back to the built-in command-line prompt. Other providers (e.g. telescope with the `ui-select` extension) also work. |
 | [nvimtools/none-ls.nvim](https://github.com/nvimtools/none-ls.nvim) _(optional)_ | LSP code actions integration                                                                                                                                                  |
 
@@ -52,7 +51,6 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   "juhaku/aiwaku.nvim",
   dependencies = {
-    "nvim-lua/plenary.nvim",
     "stevearc/dressing.nvim", -- optional: floating UI for vim.ui.select
   },
   opts = { cmd = { "opencode" } } -- your CLI AI tool

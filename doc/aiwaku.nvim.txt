@@ -41,9 +41,6 @@ System dependencies:~
 
 Neovim plugin dependencies:~
 
-  nvim-lua/plenary.nvim    Async job execution
-                           https://github.com/nvim-lua/plenary.nvim
-
   stevearc/dressing.nvim   (optional) Floating UI for vim.ui.select.
                            Without it Neovim falls back to the built-in
                            command-line prompt. Other providers (e.g.
@@ -58,7 +55,6 @@ Using lazy.nvim: >lua
   {
     "juhaku/aiwaku.nvim",
     dependencies = {
-        "nvim-lua/plenary.nvim",
         "stevearc/dressing.nvim", -- optional: floating UI for vim.ui.select
     },
     opts = { cmd = { "opencode" } },

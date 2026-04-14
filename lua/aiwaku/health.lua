@@ -51,18 +51,6 @@ function M.check()
 		end
 	end
 
-	-- plenary.nvim (required)
-	vim.health.start("aiwaku: plenary.nvim")
-	local ok_plenary = pcall(require, "plenary")
-	if ok_plenary then
-		vim.health.ok("plenary.nvim is available")
-	else
-		vim.health.error(
-			"plenary.nvim not found",
-			{ "Add nvim-lua/plenary.nvim to your plugin manager and ensure it is loaded." }
-		)
-	end
-
 	-- dressing.nvim (optional)
 	vim.health.start("aiwaku: dressing.nvim (optional)")
 	local ok_dressing = pcall(require, "dressing")
