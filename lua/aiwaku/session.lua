@@ -402,17 +402,23 @@ function M.restore_session()
 
 				state.current_session = session_name
 
-				-- Delete the ghost buffer now to free its name so that open_session
-				-- (or the next toggle()) can claim it without hitting E95. Any window
-				-- that was showing the ghost buffer will temporarily display another
-				-- buffer; open_session will replace it with the live terminal.
-				vim.api.nvim_buf_delete(bufnr, { force = true })
-
 				if ghost_win and window.win_visible_in_current_tab(ghost_win) then
-					-- Restore the sidebar into the existing window without stealing focus.
+					-- Park a scratch buffer in the sidebar window before deleting the ghost
+					-- buffer, so that Neovim does not auto-close the window when its only
+					-- buffer is removed. open_session will replace the scratch buffer with
+					-- the live terminal buffer.
+					local tmp_buf = vim.api.nvim_create_buf(false, true)
+					vim.api.nvim_win_set_buf(ghost_win, tmp_buf)
+					vim.api.nvim_buf_delete(bufnr, { force = true })
+
 					local prev_win = vim.api.nvim_get_current_win()
 					state.win_id = ghost_win
 					M.open_session(session)
+
+					if vim.api.nvim_buf_is_valid(tmp_buf) then
+						vim.api.nvim_buf_delete(tmp_buf, { force = true })
+					end
+
 					-- Return focus to the user's editing window after open_session's startinsert.
 					-- Skip when the sidebar itself was focused (keep terminal insert mode active).
 					vim.schedule(function()
@@ -421,6 +427,10 @@ function M.restore_session()
 							vim.cmd("stopinsert")
 						end
 					end)
+				else
+					-- Ghost buffer is hidden (or in another tab); free its name so the
+					-- next toggle() can claim it without hitting E95.
+					vim.api.nvim_buf_delete(bufnr, { force = true })
 				end
 
 				return

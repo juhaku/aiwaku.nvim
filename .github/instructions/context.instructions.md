@@ -138,6 +138,42 @@ These instructions exist to reduce repeated review failures by ensuring diffs, f
 
 ---
 
+### Deleting the only buffer in a window auto-closes that window
+
+- **What:** In `restore_session()`, the ghost buffer was deleted unconditionally before checking whether `ghost_win` was still alive. Because the ghost buffer was the only buffer in the sidebar window, Neovim auto-closed the window on deletion. The subsequent `win_visible_in_current_tab(ghost_win)` check returned false, so `open_session()` was never called and the panel started closed.
+- **Where:** `lua/aiwaku/session.lua` — `restore_session()`, unconditional `buf_delete` before the `ghost_win` branch; PR #33.
+- **Diff/fix:** For the visible-panel case, park a temporary scratch buffer in the window *before* deleting the ghost buffer, then clean it up after `open_session` returns. Defer ghost-buffer deletion to the `else` branch for the hidden case.
+
+  ```lua
+  -- Before (window may auto-close when ghost buffer is deleted)
+  vim.api.nvim_buf_delete(bufnr, { force = true })
+  if ghost_win and window.win_visible_in_current_tab(ghost_win) then
+    state.win_id = ghost_win
+    M.open_session(session)
+    ...
+  end
+
+  -- After (scratch buffer keeps the window alive)
+  if ghost_win and window.win_visible_in_current_tab(ghost_win) then
+    local tmp_buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_win_set_buf(ghost_win, tmp_buf)
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+    state.win_id = ghost_win
+    M.open_session(session)
+    if vim.api.nvim_buf_is_valid(tmp_buf) then
+      vim.api.nvim_buf_delete(tmp_buf, { force = true })
+    end
+    ...
+  else
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end
+  ```
+
+- **Why:** `nvim_buf_delete` closes the window when the deleted buffer is the only one displayed there and the window is not the sole window in the tab. Always park a scratch buffer in the window first when you need to delete its current buffer but keep the window open.
+- **Verification:** Save a session with the panel open, restore it — panel must be visible and connected.
+
+---
+
 ### `stopinsert` must be skipped when the sidebar was the focused window
 
 - **What:** `restore_session` unconditionally called `vim.cmd("stopinsert")` in `vim.schedule`, which exited terminal insert mode even when the user had the sidebar focused when they saved the session.
