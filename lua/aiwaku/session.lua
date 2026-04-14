@@ -1,6 +1,6 @@
 local M = {}
 
-local async = require("plenary.async")
+local async = require("aiwaku.async")
 local config = require("aiwaku.config")
 local state = require("aiwaku.state")
 local tmux = require("aiwaku.tmux")
