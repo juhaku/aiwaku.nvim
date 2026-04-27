@@ -320,23 +320,20 @@ true` send all buffer diagnostics and are only shown when the buffer has at leas
 
 Comparison with [sidekick.nvim](https://github.com/folke/sidekick.nvim):
 
-| Feature                                   | aiwaku.nvim                      | sidekick.nvim                                                       |
-| ----------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
-| **Copilot NES** (inline diffs, `<Tab>`)   | —                                | ✅ primary feature; requires Copilot subscription + Neovim ≥ 0.11.2 |
-| **Session persistence**                   | ✅ always-on via tmux (required) | opt-in (`mux.enabled = true`); off by default                       |
-| **Multiple named sessions**               | ✅ create / switch / rename      | one terminal per tool; no custom naming                             |
-| **CLI terminal — any tool**               | ✅                               | ✅                                                                  |
-| **Preconfigured tool catalog**            | —                                | ✅ 11 tools                                                         |
-| **Context variable templates**            | —                                | ✅ `{this}`, `{function}`, `{class}`, `{quickfix}`, `{buffers}`, …  |
-| **Send selection / buffer / diagnostics** | ✅ explicit commands + keymaps   | ✅ via context variables                                            |
-| **LSP code actions (null-ls/none-ls)**    | ✅                               | —                                                                   |
-| **Auto-reload AI-modified files**         | —                                | ✅                                                                  |
-| **Terminal layout**                       | left / right                     | left / right / top / bottom / float                                 |
-| **Statusline API**                        | ✅ `session_name()`              | ✅ full Copilot + CLI status API                                    |
-| **Snacks.nvim picker integration**        | —                                | ✅                                                                  |
-| **`:checkhealth` support**                | ✅                               | ✅                                                                  |
-| **Neovim minimum**                        | 0.10                             | 0.11.2                                                              |
-| **tmux required**                         | ✅ hard dependency               | optional (`mux.backend`)                                            |
+| Aspect | aiwaku.nvim | sidekick.nvim |
+| ------ | ----------- | ------------- |
+| **Core focus** | Persistent tmux-backed sidebar for any CLI AI tool | Rich AI assistant workflow with deeper Copilot-focused features |
+| **Best fit** | You want a simple, terminal-first workflow that stays out of the way | You want more built-in features, helpers, and editor integrations |
+| **Tool model** | Tool-agnostic: bring your own CLI such as `copilot`, `claude`, `opencode`, or `aider` | Also supports CLI tools, but ships with a broader preconfigured tool catalog |
+| **Session handling** | Multiple named sessions with create, switch, rename, and strong persistence via tmux | Terminal sessions are available, but the plugin is less centered on named long-lived tmux workflows |
+| **How context is sent** | Explicit commands and keymaps for selections, buffers, and diagnostics | More context-template driven, with richer built-in helpers for gathering editor state |
+| **Editing workflow** | Focused on talking to the CLI in a sidebar terminal | Includes more opinionated AI editing features such as tighter Copilot integrations and auto-reload behavior |
+| **UI surface** | Narrower surface area: left/right sidebar, straightforward controls | Broader surface area: more layouts, integrations, and plugin-level capabilities |
+| **Dependencies / requirements** | Requires tmux; works on Neovim 0.10+ | tmux is optional; some major features target newer Neovim and Copilot-specific setups |
+
+In short: **choose aiwaku.nvim** if you want a lightweight, persistent terminal companion that works
+with whatever CLI AI you prefer. **Choose sidekick.nvim** if you want a more feature-rich and
+opinionated assistant workflow with deeper built-in integrations.
 
 ## License
 
