@@ -109,10 +109,10 @@ M.defaults = {
 		},
 	},
 	lsp_code_actions = {
-        { title = "AI: explain this code", prompt = "explain this code:" },
-        { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
+        { title = "AI: explain code", prompt = "explain code:" },
+        { title = "AI: explain file", prompt = "explain file:", buffer = true },
         { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
-        { title = "AI: refactor this code", prompt = "refactor this code:" },
+        { title = "AI: refactor code", prompt = "refactor code:" },
         { title = "AI: send diagnostics", diagnostic = true },
         { title = "AI: send file", buffer = true },
         { title = "AI: send file diagnostics", file_diagnostic = true },
