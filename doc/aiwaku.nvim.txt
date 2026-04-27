@@ -240,14 +240,13 @@ lsp_code_actions ~
   Default: >lua
 
     lsp_code_actions = {
-      { title = "AI: send selection" },
-      { title = "AI: explain this code", prompt = "explain this code:" },
-      { title = "AI: refactor this code", prompt = "refactor this code:" },
-      { title = "AI: send this file", buffer = true },
-      { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
-      { title = "AI: send diagnostics", diagnostic = true },
+      { title = "AI: explain code", prompt = "explain code:" },
+      { title = "AI: explain file", prompt = "explain file:", buffer = true },
       { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
+      { title = "AI: send diagnostics", diagnostic = true },
+      { title = "AI: send file", buffer = true },
       { title = "AI: send file diagnostics", file_diagnostic = true },
+      { title = "AI: send selection" },
     },
 <
 
@@ -494,14 +493,13 @@ Register the source alongside your other null-ls sources: >lua
 
 Default actions:~
 
-  AI: send selection              Send selection (only shown when text is selected)
-  AI: explain this code       Prepend "explain this code:" before selection (only shown when text is selected)
-  AI: refactor this code      Prepend "refactor this code:" before selection (only shown when text is selected)
-  AI: send this file          Send full buffer without a prompt prefix
-  AI: explain this file       Prepend "explain this file:" before buffer content
-  AI: send diagnostics        Send cursor-line diagnostics (cursor must have a diagnostic)
+  AI: explain code            Prepend "explain code:" before selection (only shown when text is selected)
+  AI: explain file            Prepend "explain file:" before buffer content
   AI: fix diagnostics         Prepend fix prompt before cursor-line diagnostics (cursor must have a diagnostic)
+  AI: send diagnostics        Send cursor-line diagnostics (cursor must have a diagnostic)
+  AI: send file               Send full buffer without a prompt prefix
   AI: send file diagnostics   Send all buffer diagnostics (shown when buffer has any diagnostic)
+  AI: send selection          Send selection (only shown when text is selected)
 
 Actions without `buffer`, `diagnostic`, or `file_diagnostic` call
 |aiwaku.send_selection()| internally and are only visible when text is

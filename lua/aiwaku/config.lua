@@ -112,7 +112,6 @@ M.defaults = {
         { title = "AI: explain code", prompt = "explain code:" },
         { title = "AI: explain file", prompt = "explain file:", buffer = true },
         { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
-        { title = "AI: refactor code", prompt = "refactor code:" },
         { title = "AI: send diagnostics", diagnostic = true },
         { title = "AI: send file", buffer = true },
         { title = "AI: send file diagnostics", file_diagnostic = true },

@@ -159,14 +159,13 @@ require("aiwaku").setup({
   -- LSP code actions shown via null-ls/none-ls.
   -- Each entry needs a title; prompt is optional.
   lsp_code_actions = {
-    { title = "AI: send selection" },
-    { title = "AI: explain this code", prompt = "explain this code:" },
-    { title = "AI: refactor this code", prompt = "refactor this code:" },
-    { title = "AI: send this file", buffer = true },
-    { title = "AI: explain this file", prompt = "explain this file:", buffer = true },
-    { title = "AI: send diagnostics", diagnostic = true },
+    { title = "AI: explain code", prompt = "explain code:" },
+    { title = "AI: explain file", prompt = "explain file:", buffer = true },
     { title = "AI: fix diagnostics", prompt = "Fix the following diagnostics:", diagnostic = true },
+    { title = "AI: send diagnostics", diagnostic = true },
+    { title = "AI: send file", buffer = true },
     { title = "AI: send file diagnostics", file_diagnostic = true },
+    { title = "AI: send selection" },
   },
 
   -- Keymaps active only inside the terminal buffer.
@@ -282,14 +281,13 @@ when null-ls is active on the buffer:
 
 | Action                        | Behaviour                                                                                          |
 | ----------------------------- | -------------------------------------------------------------------------------------------------- |
-| **AI: send selection**        | Send selection without a prompt prefix — only shown when text is selected                          |
-| **AI: explain this code**     | Prepend `"explain this code:"` before the selection — only shown when text is selected             |
-| **AI: refactor this code**    | Prepend `"refactor this code:"` before the selection — only shown when text is selected            |
-| **AI: send this file**        | Send the full buffer without a prompt prefix                                                       |
-| **AI: explain this file**     | Prepend `"explain this file:"` before the buffer content                                           |
-| **AI: send diagnostics**      | Send cursor-line diagnostic(s) — only shown when cursor line has a diagnostic                      |
+| **AI: explain code**          | Prepend `"explain code:"` before the selection — only shown when text is selected                  |
+| **AI: explain file**          | Prepend `"explain file:"` before the buffer content                                                |
 | **AI: fix diagnostics**       | Prepend a fix prompt before cursor-line diagnostics — only shown when cursor line has a diagnostic |
+| **AI: send diagnostics**      | Send cursor-line diagnostic(s) — only shown when cursor line has a diagnostic                      |
+| **AI: send file**             | Send the full buffer without a prompt prefix                                                       |
 | **AI: send file diagnostics** | Send all diagnostics for the current file — only shown when the buffer has any diagnostic          |
+| **AI: send selection**        | Send selection without a prompt prefix — only shown when text is selected                          |
 
 ### Replacing the action list
 
