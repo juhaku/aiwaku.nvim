@@ -43,16 +43,6 @@ local function gen_session_name(tool_name)
 	return table.concat(parts, "-")
 end
 
----Build the shell command string for a given CLI tool command.
----@param tool Aiwaku.CliTool
----@return string
-local function resolve_cmd(tool)
-	if type(tool.cmd) == "table" and vim.islist(tool.cmd) then
-		return table.concat(tool.cmd, " ")
-	end
-	return tostring(tool.cmd)
-end
-
 ---Find a tmux session by name.
 ---Returns the session table when the tmux session exists, nil otherwise.
 ---@param name string tmux session name (e.g. "ai-claude-myproj-quirky-tesla-a7f3")
@@ -102,6 +92,7 @@ function M.new_session(name)
 		return nil
 	end
 
+	---@type Aiwaku.CliTool
 	local tool = state.current_tool or state.config.cmd[1]
 	local session_name = name or gen_session_name(tool.name)
 
@@ -109,8 +100,7 @@ function M.new_session(name)
 	close_sidebar_window()
 	state.win_id = window.open_split()
 
-	local new_buf =
-		terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, resolve_cmd(tool)), session_name)
+	local new_buf = terminal.open_in_new_terminal_buf(tmux.new_session_cmd(session_name, tool.cmd), session_name)
 	if new_buf == 0 then
 		return nil
 	end
@@ -174,9 +164,11 @@ function M.toggle(opts)
 	-- session for the current working directory before creating a fresh one.
 	-- Session names follow the pattern: ai-<tool>-<cwd>-<adj>-<noun>-<hex>.
 	local cwd_pattern = "^ai%-[^%-]+-" .. vim.pesc(current_cwd()) .. "%-"
-	local sessions = vim.iter(tmux.list_sessions()):filter(function(s)
-		return s.name:match(cwd_pattern) ~= nil
-	end):totable()
+	local sessions = vim.iter(tmux.list_sessions())
+		:filter(function(s)
+			return s.name:match(cwd_pattern) ~= nil
+		end)
+		:totable()
 	if #sessions > 0 then
 		-- Pick the most recently created session (ISO date string sorts correctly).
 		table.sort(sessions, function(a, b)

@@ -13,10 +13,10 @@
 
 ---@class Aiwaku.CliTool
 ---@field name? string              Display name shown in pickers (resolved from cmd when absent)
----@field cmd string|string[]       CLI command to run
+---@field cmd string|string[]       CLI command or shell fragments to run
 
 ---@class Aiwaku.Config
----@field cmd string|string[]|Aiwaku.CliTool[]  CLI tool(s) to run; old string/string[] formats are still accepted
+---@field cmd string|string[]|Aiwaku.CliTool|Aiwaku.CliTool[]  CLI tool(s) to run; accepts single tools and mixed multi-tool lists
 ---@field width integer             Sidebar column width (default: 100)
 ---@field position "right"|"left"   Which side to open (default: "right")
 ---@field auto_submit boolean       When true, sends Enter after content to trigger immediate AI processing (default: false)

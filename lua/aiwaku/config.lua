@@ -17,30 +17,53 @@ local function name_from_cmd(cmd)
 	return vim.fn.fnamemodify(raw, ":t")
 end
 
+---Normalize one tool spec to Aiwaku.CliTool.
+---Accepts a plain string command, a string[] shell fragment list, or a named tool table.
+---@param tool string|string[]|Aiwaku.CliTool
+---@return Aiwaku.CliTool
+local function normalize_tool(tool)
+	if type(tool) == "string" then
+		return { name = name_from_cmd(tool), cmd = tool }
+	end
+	if type(tool) == "table" and tool.cmd ~= nil then
+		return {
+			name = tool.name or name_from_cmd(tool.cmd),
+			cmd = tool.cmd,
+		}
+	end
+	if type(tool) == "table" and vim.islist(tool) and type(tool[1]) == "string" then
+		return { name = name_from_cmd(tool), cmd = tool }
+	end
+	return { name = "terminal", cmd = tostring(tool) }
+end
+
 ---Normalize the user-supplied cmd config value to a list of Aiwaku.CliTool.
----Accepts the old string and string[] formats alongside the new CliTool[] format.
----@param cmd string|string[]|Aiwaku.CliTool[] Raw cmd value from config
+---Accepts plain strings, string[] shell fragment lists, single named tools, and mixed tool lists.
+---A top-level string[] still means one tool for backward compatibility.
+---@param cmd string|string[]|Aiwaku.CliTool|Aiwaku.CliTool[] Raw cmd value from config
 ---@return Aiwaku.CliTool[]
 function M.normalize_cmd(cmd)
-	if type(cmd) == "string" then
-		return { { name = name_from_cmd(cmd), cmd = cmd } }
-	end
 	if type(cmd) == "table" and vim.islist(cmd) then
-		if type(cmd[1]) == "string" then
-			-- Old string[] format: { "claude", "--arg" }
-			return { { name = name_from_cmd(cmd), cmd = cmd } }
+		local all_strings = true
+		for _, item in ipairs(cmd) do
+			if type(item) ~= "string" then
+				all_strings = false
+				break
+			end
 		end
-		-- CliTool[] format — ensure every entry has a name
+		if all_strings then
+			-- Old string[] format: { "claude", "--arg" }
+			return { normalize_tool(cmd) }
+		end
+		-- Multi-tool format — normalize each entry independently so mixed
+		-- string, string[], and named-tool items can coexist.
 		local out = {}
 		for _, tool in ipairs(cmd) do
-			table.insert(out, {
-				name = tool.name or name_from_cmd(tool.cmd),
-				cmd = tool.cmd,
-			})
+			table.insert(out, normalize_tool(tool))
 		end
 		return out
 	end
-	return { { name = "terminal", cmd = tostring(cmd) } }
+	return { normalize_tool(cmd) }
 end
 
 ---@type Aiwaku.Config
