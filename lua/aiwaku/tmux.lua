@@ -65,7 +65,7 @@ end
 ---Return the shell command for starting a new tmux session running cmd.
 ---The returned string is intended to be passed to terminal.open_in_new_terminal_buf.
 ---@param name string tmux session name
----@param cmd string Shell command to run inside the new session
+---@param cmd string|string[] Shell command or shell fragments to run inside the new session
 ---@return string
 function M.new_session_cmd(name, cmd)
 	local env_flag = ""
@@ -73,14 +73,15 @@ function M.new_session_cmd(name, cmd)
 	if socket and socket ~= "" then
 		env_flag = " -e NVIM=" .. vim.fn.shellescape(socket)
 	end
+	local shell_cmd = type(cmd) == "string" and cmd or table.concat(cmd, " ")
 	-- Create the session detached (-d) so that set-option runs before the terminal
 	-- renders, preventing a brief status-bar flash. attach-session then connects
 	-- the terminal after options are already applied.
 	return "tmux new-session -d -s "
 		.. vim.fn.shellescape(name)
 		.. env_flag
-		.. " "
-		.. vim.fn.shellescape(cmd)
+		.. " sh -lc "
+		.. vim.fn.shellescape(shell_cmd)
 		.. " \\; set-option -t "
 		.. vim.fn.shellescape(name)
 		.. " status off"

@@ -86,18 +86,24 @@ Minimal example: >lua
 
                                                             *aiwaku-config-cmd*
 cmd ~
-  Type: `string | string[] | CliTool[]`
+  Type: `string | string[] | CliTool | CliTool[]`
   Default: `{ "copilot" }`
 
-  The CLI tool(s) to run inside the tmux session. All formats are accepted:
+  The CLI tool(s) to run inside the tmux session. Lists are joined with spaces
+  into a shell command before launch, so shell fragments such as `&&` and `~`
+  work as expected. A single named tool definition is also accepted. Multi-tool
+  lists may mix plain strings, string[] fragments, and named tool definitions:
 
   Single tool (old formats still work): >lua
     cmd = "aider --model gpt-4o"
     cmd = { "/usr/local/bin/claude", "--model", "claude-3-5-sonnet" }
+    cmd = { name = "Claude", cmd = { "claude", "--dangerously-skip-permissions" } }
 <
 
   Multiple named tools: >lua
     cmd = {
+      "copilot --yolo",
+      { "~/.local/bin/claude", "--dangerously-skip-permissions" },
       { name = "Claude", cmd = { "claude", "--dangerously-skip-permissions" } },
       { name = "Copilot", cmd = "copilot" },
     }

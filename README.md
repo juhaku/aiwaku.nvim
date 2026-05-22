@@ -69,16 +69,19 @@ require("aiwaku").setup({
 })
 ```
 
-`cmd` can be a plain string, a list (recommended, avoids shell quoting issues), or a list of
-named tool definitions for multi-tool setups:
+`cmd` can be a plain string, a list of shell fragments, a single named tool definition, or a
+multi-tool list whose entries are strings, shell-fragment lists, or named tool definitions:
 
 ```lua
 -- Single tool — all formats are equivalent and backward compatible:
 cmd = "aider --model gpt-4o"
 cmd = { "/usr/local/bin/claude", "--model", "claude-3-5-sonnet" }
+cmd = { name = "Claude", cmd = { "claude", "--dangerously-skip-permissions" } }
 
 -- Multi-tool — select the active tool at runtime with <leader>at:
 cmd = {
+  "copilot --yolo",
+  { "~/.local/bin/claude", "--dangerously-skip-permissions" },
   { name = "Claude", cmd = { "claude", "--dangerously-skip-permissions" } },
   { name = "Copilot", cmd = "copilot" },
   { name = "Aider",  cmd = { "aider", "--model", "gpt-4o" } },
@@ -211,7 +214,7 @@ require("aiwaku").setup({
 
 | Option                    | Type                                                                                                           | Default         | Description                                                                       |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------- |
-| `cmd`                     | `string \| string[] \| CliTool[]`                                                                              | `{ "copilot" }` | CLI tool(s) to run. Old string/string[] formats are still accepted.               |
+| `cmd`                     | `string \| string[] \| CliTool \| CliTool[]`                                                                   | `{ "copilot" }` | CLI tool(s) to run. Mixed multi-tool lists are supported; plain top-level `string[]` stays backward-compatible as one command. |
 | `width`                   | `integer`                                                                                                      | `100`           | Sidebar panel width in columns                                                    |
 | `position`                | `"right" \| "left"`                                                                                            | `"right"`       | Side of the screen to open the panel                                              |
 | `auto_submit`             | `boolean`                                                                                                      | `false`         | When true, sends Enter after content to trigger immediate AI processing           |
