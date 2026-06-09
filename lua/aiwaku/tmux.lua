@@ -2,6 +2,21 @@ local M = {}
 
 local config = require("aiwaku.config")
 
+local shell_operators = {
+	["&&"] = true,
+	["||"] = true,
+	[";"] = true,
+	["|"] = true,
+	["|&"] = true,
+	["&"] = true,
+	["("] = true,
+	[")"] = true,
+	["<"] = true,
+	[">"] = true,
+	[">>"] = true,
+	["<<"] = true,
+}
+
 ---Run a tmux command synchronously.
 ---@param args string[] Argument list passed to the tmux executable
 ---@return integer code Exit code of the tmux process
@@ -64,7 +79,11 @@ end
 local function shell_join_argv(argv)
 	local out = {}
 	for _, arg in ipairs(argv) do
-		table.insert(out, vim.fn.shellescape(arg))
+		if shell_operators[arg] or arg == "~" or vim.startswith(arg, "~/") then
+			table.insert(out, arg)
+		else
+			table.insert(out, vim.fn.shellescape(arg))
+		end
 	end
 	return table.concat(out, " ")
 end
@@ -81,6 +100,7 @@ function M.new_session_cmd(name, cmd)
 		env_flag = " -e NVIM=" .. vim.fn.shellescape(socket)
 	end
 
+	local shell = os.getenv("SHELL") or "sh"
 	local shell_cmd = type(cmd) == "string" and cmd or shell_join_argv(cmd)
 	-- Create the session detached (-d) so that set-option runs before the terminal
 	-- renders, preventing a brief status-bar flash. attach-session then connects
@@ -88,7 +108,9 @@ function M.new_session_cmd(name, cmd)
 	return "tmux new-session -d -s "
 		.. vim.fn.shellescape(name)
 		.. env_flag
-		.. " sh -lc "
+		.. " "
+		.. vim.fn.shellescape(shell)
+		.. " -lc "
 		.. vim.fn.shellescape(shell_cmd)
 		.. " \\; set-option -t "
 		.. vim.fn.shellescape(name)
